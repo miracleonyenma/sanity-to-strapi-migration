@@ -1,19 +1,15 @@
 {
-  "generatedAt": "2025-08-29T08:07:46.737Z",
+  "generatedAt": "2025-08-29T09:37:33.041Z",
   "summary": {
     "totalSchemas": 5,
     "totalComponents": 3,
-    "singletonTypes": [
-      "post",
-      "person",
-      "category"
-    ],
+    "singletonTypes": [],
     "totalDocuments": 7
   },
   "schemas": [
     {
       "name": "category",
-      "type": "singleton",
+      "type": "collection",
       "documentCount": 1,
       "fieldCount": 2
     },
@@ -25,27 +21,27 @@
     },
     {
       "name": "person",
-      "type": "singleton",
+      "type": "collection",
       "documentCount": 1,
       "fieldCount": 4
     },
     {
       "name": "post",
-      "type": "singleton",
+      "type": "collection",
       "documentCount": 1,
-      "fieldCount": 5
+      "fieldCount": 7
     },
     {
       "name": "product",
       "type": "collection",
       "documentCount": 2,
-      "fieldCount": 5
+      "fieldCount": 6
     }
   ],
   "components": [
-    "page-seo",
-    "product-tags",
-    "product-specifications"
+    "seo.seos",
+    "tag.tagses",
+    "specification.specificationses"
   ],
   "relationships": {}
 }

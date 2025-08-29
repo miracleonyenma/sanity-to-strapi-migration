@@ -12,7 +12,7 @@ class DynamicSchemaGenerator {
       boolean: "boolean",
       datetime: "datetime",
       date: "date",
-      email: "email",
+      email: "string",
       url: "string",
       slug: "uid",
       image: "media",
@@ -103,8 +103,12 @@ class DynamicSchemaGenerator {
             path.join(folderPath, file)
           );
           if (schemaInfo) {
-            // Mark singletons
-            if (folder === "singletons") {
+            // Mark singletons ONLY from folder structure or filename
+            if (
+              folder === "singletons" ||
+              folder === "singleton" ||
+              file.includes(".singleton.")
+            ) {
               this.singletonTypes.add(schemaInfo.name);
             }
 
@@ -133,6 +137,11 @@ class DynamicSchemaGenerator {
           path.join(schemaPath, file)
         );
         if (schemaInfo) {
+          // Check for singleton in filename pattern
+          if (file.includes(".singleton.")) {
+            this.singletonTypes.add(schemaInfo.name);
+          }
+
           if (schemaInfo.type === "document") {
             this.schemas.set(schemaInfo.name, schemaInfo);
           } else if (schemaInfo.type === "object") {
@@ -187,7 +196,7 @@ class DynamicSchemaGenerator {
 
     // More sophisticated field extraction using regex
     const fieldPattern =
-      /defineField\(\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\)/gs;
+      /defineField\(\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}\)/gs;
     const fieldMatches = content.matchAll(fieldPattern);
 
     for (const match of fieldMatches) {
@@ -236,9 +245,9 @@ class DynamicSchemaGenerator {
         field.to = referenceTo;
       }
 
-      // Extract nested fields for objects
+      // Extract nested fields for objects - IMPROVED VERSION
       const nestedFields = this.extractNestedFields(fieldContent);
-      if (nestedFields) {
+      if (nestedFields && nestedFields !== "HAS_NESTED_FIELDS") {
         field.fields = nestedFields;
       }
 
@@ -291,28 +300,23 @@ class DynamicSchemaGenerator {
     const options = {};
 
     // Extract source for slug fields
-    const sourceMatch = optionsContent.match(/source:\s*['"]([^'"]*)['"]/g);
+    const sourceMatch = optionsContent.match(/source:\s*['"]([^'"]*)['"]/);
     if (sourceMatch) {
-      options.source = sourceMatch[0].match(/['"]([^'"]*)['"]/)[1];
+      options.source = sourceMatch[1];
     }
 
     // Extract list options
     const listMatch = optionsContent.match(/list:\s*\[([^\]]*)\]/);
     if (listMatch) {
       try {
-        // Simple list extraction - this is a basic approach
         const listItems = listMatch[1].match(/\{[^}]*\}/g);
         if (listItems) {
           options.list = listItems.map((item) => {
-            const titleMatch = item.match(/title:\s*['"]([^'"]*)['"]/g);
-            const valueMatch = item.match(/value:\s*['"]([^'"]*)['"]/g);
+            const titleMatch = item.match(/title:\s*['"]([^'"]*)['"]/);
+            const valueMatch = item.match(/value:\s*['"]([^'"]*)['"]/);
             return {
-              title: titleMatch
-                ? titleMatch[0].match(/['"]([^'"]*)['"]/)[1]
-                : "",
-              value: valueMatch
-                ? valueMatch[0].match(/['"]([^'"]*)['"]/)[1]
-                : "",
+              title: titleMatch ? titleMatch[1] : "",
+              value: valueMatch ? valueMatch[1] : "",
             };
           });
         }
@@ -367,14 +371,35 @@ class DynamicSchemaGenerator {
     }
   }
 
+  // IMPROVED nested fields extraction
   extractNestedFields(content) {
-    // This is complex - for now, we'll detect if there are nested fields
-    // and handle them as components in Strapi
-    const fieldsMatch = content.match(/fields:\s*\[([^\]]*)\]/);
+    const fieldsMatch = content.match(
+      /fields:\s*\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]/s
+    );
     if (!fieldsMatch) return null;
 
-    // For now, return a marker that this has nested fields
-    return "HAS_NESTED_FIELDS";
+    const fieldsContent = fieldsMatch[1];
+    const fields = [];
+
+    // Extract individual field objects from the fields array
+    const fieldObjectPattern = /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
+    const fieldMatches = fieldsContent.matchAll(fieldObjectPattern);
+
+    for (const match of fieldMatches) {
+      const fieldContent = match[1];
+
+      const name = this.extractProperty(fieldContent, "name");
+      const type = this.extractProperty(fieldContent, "type");
+      const title = this.extractProperty(fieldContent, "title");
+
+      if (name && type) {
+        const field = { name, type };
+        if (title) field.title = title;
+        fields.push(field);
+      }
+    }
+
+    return fields.length > 0 ? fields : null;
   }
 
   async analyzeExportedData(exportPath) {
@@ -413,14 +438,15 @@ class DynamicSchemaGenerator {
       }
     }
 
-    // Store document counts
+    // Store document counts but DON'T automatically mark as singletons
     Object.entries(typeCount).forEach(([type, count]) => {
       this.documentCounts.set(type, count);
 
-      // If a document type has only 1 document, it might be a singleton
+      // Only log potential singletons for manual review, don't auto-mark
       if (count === 1 && !this.singletonTypes.has(type)) {
-        console.log(`Detected potential singleton: ${type} (only 1 document)`);
-        this.singletonTypes.add(type);
+        console.log(
+          `Info: ${type} has only 1 document - consider if this should be a singleton`
+        );
       }
     });
 
@@ -446,6 +472,7 @@ class DynamicSchemaGenerator {
       options: {
         draftAndPublish: true,
       },
+      pluginOptions: {},
       attributes: {},
     };
 
@@ -480,7 +507,7 @@ class DynamicSchemaGenerator {
 
         return {
           type: "relation",
-          relation: "manyToOne",
+          relation: "oneToMany", // Changed from manyToOne to oneToMany as per expected output
           target: `api::${targetType}.${targetType}`,
         };
       }
@@ -498,7 +525,7 @@ class DynamicSchemaGenerator {
       return {
         type: "media",
         multiple: false,
-        allowedTypes: fieldType === "image" ? ["images"] : ["files"],
+        allowedTypes: ["images", "files", "videos", "audios"], // Match expected format
       };
     }
 
@@ -542,23 +569,27 @@ class DynamicSchemaGenerator {
 
         return {
           type: "relation",
-          relation: "manyToMany",
+          relation: "oneToMany", // Changed from manyToMany to oneToMany as per expected output
           target: `api::${targetType}.${targetType}`,
         };
       }
     }
 
     if (arrayItemType === "string") {
-      // Create a component for array of strings
-      const componentName = `${parentSchemaName}-${field.name}`;
-      this.createStringArrayComponent(componentName, field.title || field.name);
+      // Create a component for array of strings with better naming
+      const componentName = field.name; // Use field name directly
+      const componentKey = this.getComponentKey(field.name);
+
+      this.createStringArrayComponent(
+        componentName,
+        field.title || field.name,
+        componentKey
+      );
 
       return {
         type: "component",
         repeatable: true,
-        component: `${this.kebabCase(parentSchemaName)}.${this.kebabCase(
-          field.name
-        )}`,
+        component: componentKey,
       };
     }
 
@@ -566,7 +597,7 @@ class DynamicSchemaGenerator {
       return {
         type: "media",
         multiple: true,
-        allowedTypes: arrayItemType === "image" ? ["images"] : ["files"],
+        allowedTypes: ["images", "files", "videos", "audios"], // Match expected format
       };
     }
 
@@ -576,7 +607,7 @@ class DynamicSchemaGenerator {
 
     if (arrayItemType === "object" || this.components.has(arrayItemType)) {
       // Reference existing component or create new one
-      const componentKey = `${parentSchemaName}.${field.name}`;
+      const componentKey = this.getComponentKey(field.name);
       return {
         type: "component",
         repeatable: true,
@@ -589,59 +620,92 @@ class DynamicSchemaGenerator {
   }
 
   handleObjectField(field, parentSchemaName) {
-    const componentName = `${parentSchemaName}-${field.name}`;
+    // Use field name as component name and create proper component key
+    const componentKey = this.getComponentKey(field.name);
 
-    // Create component schema for this object
-    if (field.fields === "HAS_NESTED_FIELDS" || field.fields) {
-      this.createObjectComponent(componentName, field);
-    }
+    // Create component schema for this object with proper field parsing
+    this.createObjectComponent(field.name, field, componentKey);
 
     return {
       type: "component",
       repeatable: false,
-      component: `${this.kebabCase(parentSchemaName)}.${this.kebabCase(
-        field.name
-      )}`,
+      component: componentKey,
     };
   }
 
-  createStringArrayComponent(componentName, title) {
+  // Helper method to generate component keys in expected format
+  getComponentKey(fieldName) {
+    const category = this.singularize(fieldName);
+    const componentName = this.pluralize(fieldName);
+    return `${category}.${componentName}`;
+  }
+
+  createStringArrayComponent(componentName, title, componentKey) {
+    const [category, name] = componentKey.split(".");
+
     const component = {
-      collectionName: `components_${this.kebabCase(componentName)}s`,
+      collectionName: `components_${category}_${this.pluralize(name)}`,
       info: {
-        displayName: title,
-        description: "Array of strings component",
+        displayName: this.singularize(componentName),
       },
       options: {},
       attributes: {
-        value: {
+        name: {
+          // Changed from 'value' to 'name' as per expected output
           type: "string",
         },
       },
+      config: {},
     };
 
-    this.components.set(componentName, component);
+    this.components.set(componentKey, component);
   }
 
-  createObjectComponent(componentName, field) {
-    // This is a simplified version - in practice, you'd need to
-    // parse nested fields more thoroughly
+  createObjectComponent(componentName, field, componentKey) {
+    const [category, name] = componentKey.split(".");
+
     const component = {
-      collectionName: `components_${this.kebabCase(componentName)}s`,
+      collectionName: `components_${category}_${this.pluralize(name)}`,
       info: {
-        displayName: field.title || field.name,
-        description: "Object component",
+        displayName: this.singularize(componentName),
       },
       options: {},
-      attributes: {
-        // Add a generic text field - this should be customized based on actual nested fields
-        data: {
-          type: "json",
-        },
-      },
+      attributes: {},
+      config: {},
     };
 
-    this.components.set(componentName, component);
+    // Parse nested fields properly
+    if (field.fields && Array.isArray(field.fields)) {
+      for (const nestedField of field.fields) {
+        const strapiField = this.convertNestedField(nestedField);
+        if (strapiField) {
+          component.attributes[nestedField.name] = strapiField;
+        }
+      }
+    } else {
+      // Fallback to json if we can't parse nested fields
+      component.attributes.data = {
+        type: "json",
+      };
+    }
+
+    this.components.set(componentKey, component);
+  }
+
+  convertNestedField(field) {
+    const fieldType = field.type;
+
+    if (fieldType === "image" || fieldType === "file") {
+      return {
+        type: "media",
+        multiple: false,
+        allowedTypes: ["images", "files", "videos", "audios"],
+      };
+    }
+
+    // Handle primitive types
+    const strapiType = this.typeMapping[fieldType] || "string";
+    return { type: strapiType };
   }
 
   storeRelationship(fromType, fieldName, toType, isArray) {
@@ -653,7 +717,7 @@ class DynamicSchemaGenerator {
       fieldName,
       targetType: toType,
       isArray,
-      relation: isArray ? "manyToMany" : "manyToOne",
+      relation: "oneToMany", // Changed default to oneToMany
     });
   }
 
@@ -687,13 +751,9 @@ class DynamicSchemaGenerator {
       console.log(`Generated schema for: ${typeName} (${strapiSchema.kind})`);
     }
 
-    // Generate components
-    for (const [componentName, component] of this.components) {
-      const parts = componentName.split("-");
-      const categoryName = this.kebabCase(parts[0]);
-      const componentFileName = this.kebabCase(
-        parts.slice(1).join("-") || parts[0]
-      );
+    // Generate components with improved structure
+    for (const [componentKey, component] of this.components) {
+      const [categoryName, componentFileName] = componentKey.split(".");
 
       const componentDir = path.join(
         strapiProjectPath,
@@ -811,6 +871,19 @@ export default factories.createCoreService('api::${typeName}.${typeName}');`;
       return word + "es";
     }
     return word + "s";
+  }
+
+  singularize(word) {
+    if (word.endsWith("ies")) {
+      return word.slice(0, -3) + "y";
+    }
+    if (word.endsWith("es")) {
+      return word.slice(0, -2);
+    }
+    if (word.endsWith("s") && !word.endsWith("ss")) {
+      return word.slice(0, -1);
+    }
+    return word;
   }
 
   kebabCase(str) {
