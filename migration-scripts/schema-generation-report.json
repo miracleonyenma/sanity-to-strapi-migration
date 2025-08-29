@@ -1,196 +1,51 @@
 {
-  "generatedAt": "2025-08-28T15:50:40.883Z",
-  "documentTypes": {
-    "post": {
-      "fieldCount": 7,
-      "fields": {
-        "authors": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "body": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "categories": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "image": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "publishedAt": {
-          "sanityType": "datetime",
-          "strapiType": "datetime",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "slug": {
-          "sanityType": "slug",
-          "strapiType": "uid",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "title": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        }
-      }
-    },
-    "person": {
-      "fieldCount": 4,
-      "fields": {
-        "bio": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "email": {
-          "sanityType": "email",
-          "strapiType": "email",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "name": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "profilePicture": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        }
-      }
-    },
-    "category": {
-      "fieldCount": 2,
-      "fields": {
-        "slug": {
-          "sanityType": "slug",
-          "strapiType": "uid",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "title": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        }
-      }
-    },
-    "page": {
-      "fieldCount": 4,
-      "fields": {
-        "body": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "seo": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "slug": {
-          "sanityType": "slug",
-          "strapiType": "uid",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "title": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        }
-      }
-    },
-    "product": {
-      "fieldCount": 6,
-      "fields": {
-        "available": {
-          "sanityType": "boolean",
-          "strapiType": "boolean",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "gallery": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        },
-        "name": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "price": {
-          "sanityType": "integer",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "specifications": {
-          "sanityType": "object",
-          "isRequired": true,
-          "isArray": false,
-          "usageRate": 1
-        },
-        "tags": {
-          "sanityType": "string",
-          "strapiType": "string",
-          "isRequired": true,
-          "isArray": true,
-          "usageRate": 1
-        }
-      }
-    }
-  },
-  "components": {
-    "page-seo": {
-      "fieldCount": 3,
-      "displayName": "Page seo"
-    },
-    "product-specifications": {
-      "fieldCount": 3,
-      "displayName": "Product specifications"
-    }
-  },
+  "generatedAt": "2025-08-29T08:07:46.737Z",
   "summary": {
-    "totalDocumentTypes": 5,
-    "totalComponents": 2,
-    "fieldsMapped": 23
-  }
+    "totalSchemas": 5,
+    "totalComponents": 3,
+    "singletonTypes": [
+      "post",
+      "person",
+      "category"
+    ],
+    "totalDocuments": 7
+  },
+  "schemas": [
+    {
+      "name": "category",
+      "type": "singleton",
+      "documentCount": 1,
+      "fieldCount": 2
+    },
+    {
+      "name": "page",
+      "type": "collection",
+      "documentCount": 2,
+      "fieldCount": 4
+    },
+    {
+      "name": "person",
+      "type": "singleton",
+      "documentCount": 1,
+      "fieldCount": 4
+    },
+    {
+      "name": "post",
+      "type": "singleton",
+      "documentCount": 1,
+      "fieldCount": 5
+    },
+    {
+      "name": "product",
+      "type": "collection",
+      "documentCount": 2,
+      "fieldCount": 5
+    }
+  ],
+  "components": [
+    "page-seo",
+    "product-tags",
+    "product-specifications"
+  ],
+  "relationships": {}
 }
