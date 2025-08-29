@@ -1,10 +1,11 @@
 // migration-scripts/dynamic-schema-generator.js
 const fs = require("fs-extra");
-const readline = require("readline");
+const path = require("path");
 
 class DynamicSchemaGenerator {
   constructor() {
-    this.sanityToStrapiTypeMap = {
+    // Field type mappings from Sanity to Strapi
+    this.typeMapping = {
       string: "string",
       text: "text",
       number: "decimal",
@@ -16,580 +17,641 @@ class DynamicSchemaGenerator {
       slug: "uid",
       image: "media",
       file: "media",
-      array: this.handleArrayField.bind(this),
-      object: this.handleObjectField.bind(this),
-      reference: this.handleReferenceField.bind(this),
-      block: "richtext",
+      geopoint: "json",
+      color: "string",
     };
 
-    this.documentSchemas = new Map();
-    this.objectSchemas = new Map(); // For nested objects that become components
-    this.relationshipMap = new Map();
-    this.fieldUsageStats = new Map();
+    this.componentsToCreate = new Map();
+    this.relationshipsToCreate = [];
+    this.processedSchemas = new Map();
   }
 
-  async generateFromExport(exportFilePath, analysisFilePath = null) {
-    console.log("Analyzing Sanity export for dynamic schema generation...");
+  // Main entry point - can work with either approach
+  async generateFromSanitySchemas(schemasPath, exportAnalysisPath = null) {
+    console.log("🔄 Analyzing Sanity schemas...");
 
-    // Step 1: Analyze the export data to understand field usage
-    await this.analyzeExportData(exportFilePath);
+    let sanitySchemas = [];
+    let sampleData = null;
 
-    // Step 2: If analysis file is provided, incorporate that data too
-    if (analysisFilePath && fs.existsSync(analysisFilePath)) {
-      await this.incorporateAnalysisData(analysisFilePath);
-    }
+    // Try to load schema files directly
+    if (fs.existsSync(schemasPath)) {
+      if (schemasPath.endsWith(".js") || schemasPath.endsWith(".ts")) {
+        // Single schema file
+        const schemaModule = require(path.resolve(schemasPath));
+        sanitySchemas = schemaModule.schemaTypes ||
+          schemaModule.default || [schemaModule];
+      } else {
+        // Directory of schema files
+        const schemaFiles = fs
+          .readdirSync(schemasPath)
+          .filter((file) => file.endsWith(".ts") || file.endsWith(".js"))
+          .filter((file) => !file.includes("index"));
 
-    // Step 3: Generate Strapi schemas
-    await this.generateStrapiSchemas();
-
-    // Step 4: Generate components for nested objects
-    await this.generateComponents();
-
-    console.log("Dynamic schema generation complete!");
-  }
-
-  async analyzeExportData(exportFilePath) {
-    const fileStream = fs.createReadStream(exportFilePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity,
-    });
-
-    console.log("Analyzing export data structure...");
-
-    for await (const line of rl) {
-      const doc = JSON.parse(line);
-
-      // Skip system documents and assets
-      if (doc._type.startsWith("sanity.") || doc._type.startsWith("system.")) {
-        continue;
-      }
-
-      // Analyze document structure
-      this.analyzeDocumentStructure(doc);
-    }
-
-    console.log(`Found ${this.documentSchemas.size} document types`);
-  }
-
-  analyzeDocumentStructure(doc) {
-    const docType = doc._type;
-
-    if (!this.documentSchemas.has(docType)) {
-      this.documentSchemas.set(docType, {
-        type: "document",
-        fields: new Map(),
-        sampleDoc: doc,
-      });
-    }
-
-    const schema = this.documentSchemas.get(docType);
-
-    // Analyze each field in the document
-    for (const [fieldName, fieldValue] of Object.entries(doc)) {
-      if (fieldName.startsWith("_")) continue; // Skip system fields
-
-      this.analyzeField(docType, fieldName, fieldValue, schema.fields);
-    }
-  }
-
-  analyzeField(docType, fieldName, fieldValue, fieldsMap) {
-    const fieldType = this.inferFieldType(fieldValue);
-    const fieldKey = `${docType}.${fieldName}`;
-
-    // Track field usage statistics
-    if (!this.fieldUsageStats.has(fieldKey)) {
-      this.fieldUsageStats.set(fieldKey, {
-        type: fieldType,
-        isRequired: false,
-        isArray: Array.isArray(fieldValue),
-        samples: [],
-        nullCount: 0,
-        totalCount: 0,
-      });
-    }
-
-    const stats = this.fieldUsageStats.get(fieldKey);
-    stats.totalCount++;
-
-    if (fieldValue === null || fieldValue === undefined) {
-      stats.nullCount++;
-    } else {
-      stats.samples.push(fieldValue);
-      // Keep only last 5 samples to avoid memory issues
-      if (stats.samples.length > 5) {
-        stats.samples = stats.samples.slice(-5);
-      }
-    }
-
-    // Determine if field should be required (present in >80% of documents)
-    stats.isRequired = stats.nullCount / stats.totalCount < 0.2;
-
-    // Store field definition
-    if (!fieldsMap.has(fieldName)) {
-      fieldsMap.set(fieldName, {
-        type: fieldType,
-        isArray: Array.isArray(fieldValue),
-        isReference: this.isReference(fieldValue),
-        isAsset: this.isAsset(fieldValue),
-        targetTypes: this.extractTargetTypes(fieldValue),
-        nestedFields: this.extractNestedFields(fieldValue),
-      });
-    }
-  }
-
-  inferFieldType(value) {
-    if (value === null || value === undefined) return "string";
-
-    if (Array.isArray(value)) {
-      if (value.length === 0) return "array";
-      return this.inferFieldType(value[0]); // Check first item
-    }
-
-    if (typeof value === "string") {
-      // Check for special string patterns
-      if (value.match(/^\d{4}-\d{2}-\d{2}T/)) return "datetime";
-      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) return "date";
-      if (value.includes("@") && value.includes(".")) return "email";
-      if (value.startsWith("http")) return "url";
-      if (value.length > 200) return "text";
-      return "string";
-    }
-
-    if (typeof value === "number") {
-      return Number.isInteger(value) ? "integer" : "decimal";
-    }
-
-    if (typeof value === "boolean") return "boolean";
-
-    if (typeof value === "object") {
-      if (this.isReference(value)) return "reference";
-      if (this.isAsset(value))
-        return value._type === "image" ? "image" : "file";
-      if (this.isPortableText(value)) return "block";
-      if (this.isSlug(value)) return "slug";
-      return "object";
-    }
-
-    return "string";
-  }
-
-  isReference(value) {
-    return value && typeof value === "object" && value._ref && !value._type;
-  }
-
-  isAsset(value) {
-    return (
-      value &&
-      typeof value === "object" &&
-      value.asset &&
-      value.asset._ref &&
-      (value.asset._ref.includes("image-") ||
-        value.asset._ref.includes("file-"))
-    );
-  }
-
-  isPortableText(value) {
-    return (
-      Array.isArray(value) &&
-      value.some((block) => block && block._type === "block" && block.children)
-    );
-  }
-
-  isSlug(value) {
-    return (
-      value &&
-      typeof value === "object" &&
-      value.current &&
-      typeof value.current === "string"
-    );
-  }
-
-  extractTargetTypes(value) {
-    const types = new Set();
-
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        const itemTypes = this.extractTargetTypes(item);
-        itemTypes.forEach((type) => types.add(type));
-      });
-    } else if (this.isReference(value)) {
-      // Try to infer target type from the reference ID pattern
-      const refId = value._ref;
-      // Many Sanity refs follow pattern: type-uuid
-      const typeMatch = refId.match(/^([^-]+)-/);
-      if (typeMatch) {
-        types.add(typeMatch[1]);
-      }
-    }
-
-    return Array.from(types);
-  }
-
-  extractNestedFields(value) {
-    if (!value || typeof value !== "object" || Array.isArray(value))
-      return null;
-
-    if (this.isReference(value) || this.isAsset(value) || this.isSlug(value))
-      return null;
-
-    const nestedFields = new Map();
-    for (const [key, val] of Object.entries(value)) {
-      if (key.startsWith("_")) continue;
-      nestedFields.set(key, {
-        type: this.inferFieldType(val),
-        isArray: Array.isArray(val),
-      });
-    }
-
-    return nestedFields.size > 0 ? nestedFields : null;
-  }
-
-  async incorporateAnalysisData(analysisFilePath) {
-    console.log("Incorporating analysis data...");
-    const analysisData = await fs.readJSON(analysisFilePath);
-
-    // Use sample documents to enhance our understanding
-    if (analysisData.sampleDocs) {
-      for (const [docType, sampleDoc] of Object.entries(
-        analysisData.sampleDocs
-      )) {
-        if (sampleDoc) {
-          this.analyzeDocumentStructure(sampleDoc);
+        for (const file of schemaFiles) {
+          try {
+            const schemaPath = path.join(schemasPath, file);
+            const schemaModule = require(path.resolve(schemaPath));
+            const schema = schemaModule.default || schemaModule;
+            if (schema && schema.name) {
+              sanitySchemas.push(schema);
+            }
+          } catch (error) {
+            console.warn(
+              `⚠️  Could not load schema from ${file}:`,
+              error.message
+            );
+          }
         }
       }
     }
-  }
 
-  async generateStrapiSchemas() {
-    console.log("Generating Strapi schemas...");
-
-    for (const [docType, schema] of this.documentSchemas) {
-      const strapiSchema = await this.convertToStrapiSchema(docType, schema);
-
-      // Create schema file
-      const schemaDir = `../strapi-project/src/api/${docType}/content-types/${docType}`;
-      await fs.ensureDir(schemaDir);
-      await fs.writeJSON(`${schemaDir}/schema.json`, strapiSchema, {
-        spaces: 2,
-      });
-
-      console.log(`✅ Generated schema for: ${docType}`);
+    // Load sample data if available
+    if (exportAnalysisPath && fs.existsSync(exportAnalysisPath)) {
+      const analysisData = JSON.parse(
+        fs.readFileSync(exportAnalysisPath, "utf8")
+      );
+      sampleData = analysisData.sampleDocs;
     }
+
+    if (sanitySchemas.length === 0) {
+      throw new Error(
+        "No Sanity schemas found. Please check your schema path."
+      );
+    }
+
+    console.log(`📋 Found ${sanitySchemas.length} schema types to convert`);
+
+    // Analyze schemas and generate Strapi equivalents
+    for (const schema of sanitySchemas) {
+      await this.convertSchema(schema, sampleData);
+    }
+
+    // Create components first
+    await this.generateComponents();
+
+    // Then create the main schemas
+    await this.generateSchemas();
+
+    console.log("✅ Schema generation complete!");
+    this.printSummary();
   }
 
-  async convertToStrapiSchema(docType, schema) {
-    const pluralName = this.pluralize(docType);
+  convertSchema(sanitySchema, sampleData = null) {
+    if (sanitySchema.type !== "document") {
+      console.log(`ℹ️  Skipping non-document schema: ${sanitySchema.name}`);
+      return;
+    }
+
+    console.log(`🔄 Converting schema: ${sanitySchema.name}`);
 
     const strapiSchema = {
       kind: "collectionType",
-      collectionName: pluralName,
+      collectionName: this.pluralize(sanitySchema.name),
       info: {
-        singularName: docType,
-        pluralName: pluralName,
-        displayName: this.titleCase(docType),
+        singularName: sanitySchema.name,
+        pluralName: this.pluralize(sanitySchema.name),
+        displayName: sanitySchema.title || sanitySchema.name,
       },
       options: {
         draftAndPublish: true,
       },
+      pluginOptions: {},
       attributes: {},
     };
 
-    // Convert each field
-    for (const [fieldName, fieldInfo] of schema.fields) {
-      const strapiField = await this.convertFieldToStrapi(
-        docType,
-        fieldName,
-        fieldInfo
-      );
-      if (strapiField) {
-        strapiSchema.attributes[fieldName] = strapiField;
+    // Add standard Strapi fields
+    if (this.hasPublishDate(sanitySchema)) {
+      strapiSchema.attributes.publishedAt = {
+        type: "datetime",
+      };
+    }
+
+    // Convert fields
+    if (sanitySchema.fields) {
+      for (const field of sanitySchema.fields) {
+        const convertedField = this.convertField(
+          field,
+          sanitySchema.name,
+          sampleData
+        );
+        if (convertedField) {
+          strapiSchema.attributes[field.name] = convertedField;
+        }
       }
     }
 
-    return strapiSchema;
+    this.processedSchemas.set(sanitySchema.name, strapiSchema);
   }
 
-  async convertFieldToStrapi(docType, fieldName, fieldInfo) {
-    const fieldKey = `${docType}.${fieldName}`;
-    const stats = this.fieldUsageStats.get(fieldKey);
+  convertField(field, parentSchemaName, sampleData = null) {
+    const fieldType = field.type;
+    let strapiField = null;
 
-    let strapiField = {};
+    // Handle validation and options
+    const hasValidation =
+      field.validation && typeof field.validation === "function";
+    const hasRequired = hasValidation; // We'll assume validation means required for now
+    const options = field.options || {};
 
-    // Handle different field types
-    switch (fieldInfo.type) {
-      case "reference":
-        return this.handleReferenceField(fieldInfo, stats);
+    switch (fieldType) {
+      case "string":
+        strapiField = {
+          type: "string",
+        };
+        if (hasRequired) strapiField.required = true;
+        break;
+
+      case "text":
+        strapiField = {
+          type: "text",
+        };
+        if (hasRequired) strapiField.required = true;
+        break;
+
+      case "number":
+        strapiField = {
+          type: field.name.toLowerCase().includes("price")
+            ? "decimal"
+            : "integer",
+        };
+        if (hasRequired) strapiField.required = true;
+        if (options.min !== undefined) strapiField.min = options.min;
+        if (options.max !== undefined) strapiField.max = options.max;
+        break;
+
+      case "boolean":
+        strapiField = {
+          type: "boolean",
+        };
+        if (field.initialValue !== undefined) {
+          strapiField.default = field.initialValue;
+        }
+        break;
+
+      case "datetime":
+      case "date":
+        strapiField = {
+          type: fieldType,
+        };
+        if (hasRequired) strapiField.required = true;
+        break;
+
+      case "slug":
+        strapiField = {
+          type: "uid",
+        };
+        if (options.source) {
+          strapiField.targetField = options.source;
+        }
+        if (hasRequired) strapiField.required = true;
+        break;
 
       case "image":
       case "file":
-        return {
+        strapiField = {
           type: "media",
-          multiple: fieldInfo.isArray,
-          required: stats?.isRequired || false,
-          allowedTypes:
-            fieldInfo.type === "image"
-              ? ["images"]
-              : ["files", "images", "videos"],
+          multiple: false,
+          allowedTypes: fieldType === "image" ? ["images"] : ["files"],
         };
+        break;
+
+      case "url":
+        strapiField = {
+          type: "string",
+        };
+        break;
+
+      case "email":
+        strapiField = {
+          type: "email",
+        };
+        break;
 
       case "array":
-        return this.handleArrayField(fieldInfo, stats);
+        strapiField = this.handleArrayField(
+          field,
+          parentSchemaName,
+          sampleData
+        );
+        break;
+
+      case "reference":
+        strapiField = this.handleReferenceField(field, parentSchemaName);
+        break;
 
       case "object":
-        return this.handleObjectField(docType, fieldName, fieldInfo);
-
-      case "block":
-        return { type: "richtext" };
-
-      case "slug":
-        return {
-          type: "uid",
-          targetField: "title", // Default to title, might need manual adjustment
-        };
+        strapiField = this.handleObjectField(field, parentSchemaName);
+        break;
 
       default:
+        console.warn(
+          `⚠️  Unhandled field type: ${fieldType} for field ${field.name}`
+        );
         strapiField = {
-          type: this.sanityToStrapiTypeMap[fieldInfo.type] || "string",
+          type: "json",
+          _note: `Original type: ${fieldType}`,
         };
-    }
-
-    // Add common properties
-    if (stats?.isRequired) {
-      strapiField.required = true;
-    }
-
-    // Add validation for specific types
-    if (fieldInfo.type === "email") {
-      strapiField.type = "email";
-    } else if (fieldInfo.type === "url") {
-      strapiField.type = "string";
     }
 
     return strapiField;
   }
 
-  handleReferenceField(fieldInfo, stats) {
-    if (fieldInfo.isArray) {
+  handleArrayField(field, parentSchemaName, sampleData = null) {
+    if (!field.of || field.of.length === 0) {
       return {
-        type: "relation",
-        relation: "manyToMany",
-        target:
-          fieldInfo.targetTypes.length > 0
-            ? `api::${fieldInfo.targetTypes[0]}.${fieldInfo.targetTypes[0]}`
-            : "plugin::users-permissions.user", // fallback
-        required: stats?.isRequired || false,
-      };
-    } else {
-      return {
-        type: "relation",
-        relation: "manyToOne",
-        target:
-          fieldInfo.targetTypes.length > 0
-            ? `api::${fieldInfo.targetTypes[0]}.${fieldInfo.targetTypes[0]}`
-            : "plugin::users-permissions.user", // fallback
-        required: stats?.isRequired || false,
+        type: "json",
+        _note: "Empty array field",
       };
     }
-  }
 
-  handleArrayField(fieldInfo, stats) {
-    // Arrays in Sanity can be many things - we need to look at the content
-    const sample = stats?.samples?.[0];
+    const arrayItemType = field.of[0];
 
-    if (Array.isArray(sample) && sample.length > 0) {
-      const firstItem = sample[0];
+    switch (arrayItemType.type) {
+      case "reference":
+        // Array of references -> many-to-many relation
+        const targetType = arrayItemType.to[0].type;
+        return {
+          type: "relation",
+          relation: "manyToMany",
+          target: `api::${targetType}.${targetType}`,
+        };
 
-      if (this.isReference(firstItem)) {
-        return this.handleReferenceField(
-          { ...fieldInfo, isArray: true },
-          stats
-        );
-      } else if (this.isAsset(firstItem)) {
+      case "string":
+        // Array of strings -> component with repeatable string
+        const componentName = `${parentSchemaName}-${field.name}`;
+        this.componentsToCreate.set(componentName, {
+          collectionName: `components_${parentSchemaName}_${field.name}`,
+          info: {
+            displayName: field.title || field.name,
+          },
+          options: {},
+          attributes: {
+            value: {
+              type: "string",
+            },
+          },
+        });
+
+        return {
+          type: "component",
+          repeatable: true,
+          component: `${parentSchemaName}.${field.name}`,
+        };
+
+      case "image":
+      case "file":
+        // Array of images/files -> media field with multiple
         return {
           type: "media",
           multiple: true,
-          allowedTypes: ["images", "files", "videos"],
+          allowedTypes: arrayItemType.type === "image" ? ["images"] : ["files"],
         };
-      } else if (this.isPortableText(sample)) {
-        return { type: "richtext" };
-      } else if (typeof firstItem === "string") {
-        return { type: "json" }; // Store as JSON for string arrays
+
+      case "block":
+        // Rich text blocks
+        return {
+          type: "richtext",
+        };
+
+      case "object":
+        // Array of objects -> repeatable component
+        const objComponentName = `${parentSchemaName}-${field.name}`;
+        const componentAttributes = {};
+
+        if (arrayItemType.fields) {
+          for (const objField of arrayItemType.fields) {
+            const convertedField = this.convertField(
+              objField,
+              parentSchemaName
+            );
+            if (convertedField) {
+              componentAttributes[objField.name] = convertedField;
+            }
+          }
+        }
+
+        this.componentsToCreate.set(objComponentName, {
+          collectionName: `components_${parentSchemaName}_${field.name}`,
+          info: {
+            displayName: field.title || field.name,
+          },
+          options: {},
+          attributes: componentAttributes,
+        });
+
+        return {
+          type: "component",
+          repeatable: true,
+          component: `${parentSchemaName}.${field.name}`,
+        };
+
+      default:
+        return {
+          type: "json",
+          _note: `Array of ${arrayItemType.type}`,
+        };
+    }
+  }
+
+  handleReferenceField(field, parentSchemaName) {
+    if (!field.to || field.to.length === 0) {
+      return {
+        type: "json",
+        _note: "Reference without target",
+      };
+    }
+
+    const targetType = field.to[0].type;
+    return {
+      type: "relation",
+      relation: "manyToOne",
+      target: `api::${targetType}.${targetType}`,
+    };
+  }
+
+  handleObjectField(field, parentSchemaName) {
+    const componentName = `${parentSchemaName}-${field.name}`;
+    const componentAttributes = {};
+
+    if (field.fields) {
+      for (const objField of field.fields) {
+        const convertedField = this.convertField(objField, parentSchemaName);
+        if (convertedField) {
+          componentAttributes[objField.name] = convertedField;
+        }
       }
     }
 
-    return { type: "json" }; // Fallback to JSON for complex arrays
-  }
-
-  handleObjectField(docType, fieldName, fieldInfo) {
-    if (!fieldInfo.nestedFields) {
-      return { type: "json" };
-    }
-
-    // Create a component for this nested object
-    const componentName = `${docType}-${fieldName}`;
-    this.objectSchemas.set(componentName, {
-      fields: fieldInfo.nestedFields,
-      displayName: this.titleCase(`${docType} ${fieldName}`),
+    // Create component
+    this.componentsToCreate.set(componentName, {
+      collectionName: `components_${parentSchemaName}_${field.name}`,
+      info: {
+        displayName: field.title || field.name,
+      },
+      options: {},
+      attributes: componentAttributes,
     });
 
     return {
       type: "component",
       repeatable: false,
-      component: `${docType}.${fieldName}`,
+      component: `${parentSchemaName}.${field.name}`,
     };
   }
 
   async generateComponents() {
-    console.log("Generating components...");
+    console.log(`🔧 Generating ${this.componentsToCreate.size} components...`);
 
-    for (const [componentName, componentInfo] of this.objectSchemas) {
-      const [category, name] = componentName.split("-");
+    for (const [componentName, componentSchema] of this.componentsToCreate) {
+      const [namespace, name] = componentName.split("-");
+      const componentDir = `../strapi-project/src/components/${namespace}`;
 
-      const component = {
-        collectionName: `components_${category}_${name}`,
-        info: {
-          displayName: componentInfo.displayName,
-          icon: "cube",
-        },
-        options: {},
-        attributes: {},
-      };
-
-      // Convert nested fields
-      for (const [fieldName, fieldInfo] of componentInfo.fields) {
-        const strapiField = {
-          type: this.sanityToStrapiTypeMap[fieldInfo.type] || "string",
-        };
-
-        if (fieldInfo.isArray) {
-          strapiField.type = "json"; // Store arrays as JSON in components
-        }
-
-        component.attributes[fieldName] = strapiField;
-      }
-
-      // Create component file
-      const componentDir = `../strapi-project/src/components/${category}`;
       await fs.ensureDir(componentDir);
-      await fs.writeJSON(`${componentDir}/${name}.json`, component, {
+      await fs.writeJSON(`${componentDir}/${name}.json`, componentSchema, {
         spaces: 2,
       });
 
-      console.log(`✅ Generated component: ${category}.${name}`);
+      console.log(`  ✅ Generated component: ${namespace}.${name}`);
     }
   }
 
+  async generateSchemas() {
+    console.log(
+      `📝 Generating ${this.processedSchemas.size} collection schemas...`
+    );
+
+    for (const [schemaName, strapiSchema] of this.processedSchemas) {
+      const schemaDir = `../strapi-project/src/api/${schemaName}/content-types/${schemaName}`;
+      await fs.ensureDir(schemaDir);
+      await fs.writeJSON(`${schemaDir}/schema.json`, strapiSchema, {
+        spaces: 2,
+      });
+
+      // Generate controller, service, and routes
+      await this.generateApiFiles(schemaName);
+
+      console.log(`  ✅ Generated schema: ${schemaName}`);
+    }
+  }
+
+  async generateApiFiles(schemaName) {
+    const apiDir = `../strapi-project/src/api/${schemaName}`;
+
+    // Controller
+    const controllerContent = `/**
+ * ${schemaName} controller
+ */
+
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::${schemaName}.${schemaName}');
+`;
+
+    // Service
+    const serviceContent = `/**
+ * ${schemaName} service
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::${schemaName}.${schemaName}');
+`;
+
+    // Routes
+    const routeContent = `/**
+ * ${schemaName} router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::${schemaName}.${schemaName}');
+`;
+
+    await fs.ensureDir(`${apiDir}/controllers`);
+    await fs.ensureDir(`${apiDir}/services`);
+    await fs.ensureDir(`${apiDir}/routes`);
+
+    await fs.writeFile(
+      `${apiDir}/controllers/${schemaName}.ts`,
+      controllerContent
+    );
+    await fs.writeFile(`${apiDir}/services/${schemaName}.ts`, serviceContent);
+    await fs.writeFile(`${apiDir}/routes/${schemaName}.ts`, routeContent);
+  }
+
+  printSummary() {
+    console.log("\n📊 SCHEMA CONVERSION SUMMARY");
+    console.log("================================");
+    console.log(`Collection Types: ${this.processedSchemas.size}`);
+    console.log(`Components: ${this.componentsToCreate.size}`);
+
+    console.log("\n📋 Generated Collection Types:");
+    for (const [name] of this.processedSchemas) {
+      console.log(`  - ${name}`);
+    }
+
+    console.log("\n🔧 Generated Components:");
+    for (const [name] of this.componentsToCreate) {
+      const [namespace, componentName] = name.split("-");
+      console.log(`  - ${namespace}.${componentName}`);
+    }
+
+    console.log("\n⚠️  IMPORTANT NOTES:");
+    console.log("- Review generated schemas for any manual adjustments needed");
+    console.log("- Some complex Sanity field types may need manual refinement");
+    console.log("- Restart your Strapi server to see the new schemas");
+    console.log(
+      "- Test the admin interface to ensure everything works as expected"
+    );
+  }
+
+  // Helper methods
   pluralize(word) {
-    // Basic pluralization rules
-    if (word.endsWith("y")) {
-      return word.slice(0, -1) + "ies";
-    } else if (
-      word.endsWith("s") ||
-      word.endsWith("sh") ||
-      word.endsWith("ch")
-    ) {
-      return word + "es";
-    } else {
-      return word + "s";
-    }
-  }
-
-  titleCase(str) {
-    return str
-      .split(/[-_]/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
-
-  // Generate migration report
-  async generateMigrationReport() {
-    const report = {
-      generatedAt: new Date().toISOString(),
-      documentTypes: {},
-      components: {},
-      summary: {
-        totalDocumentTypes: this.documentSchemas.size,
-        totalComponents: this.objectSchemas.size,
-        fieldsMapped: this.fieldUsageStats.size,
-      },
+    const plurals = {
+      person: "people",
+      category: "categories",
+      company: "companies",
+      story: "stories",
     };
 
-    // Document type details
-    for (const [docType, schema] of this.documentSchemas) {
-      report.documentTypes[docType] = {
-        fieldCount: schema.fields.size,
-        fields: {},
-      };
-
-      for (const [fieldName, fieldInfo] of schema.fields) {
-        const fieldKey = `${docType}.${fieldName}`;
-        const stats = this.fieldUsageStats.get(fieldKey);
-
-        report.documentTypes[docType].fields[fieldName] = {
-          sanityType: fieldInfo.type,
-          strapiType: this.getStrapiTypeForField(fieldInfo),
-          isRequired: stats?.isRequired || false,
-          isArray: fieldInfo.isArray,
-          usageRate: stats ? 1 - stats.nullCount / stats.totalCount : 0,
-        };
-      }
-    }
-
-    // Component details
-    for (const [componentName, componentInfo] of this.objectSchemas) {
-      report.components[componentName] = {
-        fieldCount: componentInfo.fields.size,
-        displayName: componentInfo.displayName,
-      };
-    }
-
-    await fs.writeJSON(
-      "../migration-scripts/schema-generation-report.json",
-      report,
-      { spaces: 2 }
-    );
-    console.log("📄 Migration report saved to schema-generation-report.json");
+    if (plurals[word]) return plurals[word];
+    if (word.endsWith("y")) return word.slice(0, -1) + "ies";
+    if (word.endsWith("s")) return word + "es";
+    return word + "s";
   }
 
-  getStrapiTypeForField(fieldInfo) {
-    if (fieldInfo.type === "reference") {
-      return fieldInfo.isArray
-        ? "relation (manyToMany)"
-        : "relation (manyToOne)";
-    }
-    return this.sanityToStrapiTypeMap[fieldInfo.type] || "string";
+  hasPublishDate(schema) {
+    if (!schema.fields) return false;
+    return schema.fields.some(
+      (field) =>
+        field.name === "publishedAt" ||
+        field.name === "publishDate" ||
+        field.name === "published"
+    );
   }
 }
 
-// Usage
-async function main() {
+// Usage examples:
+
+// 1. Generate from schema directory
+async function generateFromSchemaDirectory() {
+  const generator = new DynamicSchemaGenerator();
+  await generator.generateFromSanitySchemas(
+    "../../sanity-studio/schemaTypes", // Path to schema directory
+    "../migration-scripts/export-analysis.json" // Optional: sample data
+  );
+}
+
+// 2. Generate from index file
+async function generateFromIndexFile() {
+  const generator = new DynamicSchemaGenerator();
+  await generator.generateFromSanitySchemas(
+    "../sanity-studio/schemaTypes/index.ts" // Path to schema index file
+  );
+}
+
+// 3. Analyze from exported data (fallback method)
+async function generateFromExportedData() {
   const generator = new DynamicSchemaGenerator();
 
-  try {
-    await generator.generateFromExport(
-      "../sanity-export/full-export.ndjson",
-      "../migration-scripts/export-analysis.json"
-    );
+  // This method analyzes the actual data to infer schema structure
+  const exportData = fs.readFileSync(
+    "../sanity-export/full-export.ndjson",
+    "utf8"
+  );
+  const lines = exportData.trim().split("\n");
+  const schemaAnalysis = new Map();
 
-    await generator.generateMigrationReport();
+  // Analyze document structure
+  for (const line of lines) {
+    const doc = JSON.parse(line);
+    if (!doc._type || doc._type.startsWith("sanity.")) continue;
 
-    console.log("\n🎉 Dynamic schema generation complete!");
-    console.log("📁 Check ../strapi-project/src/api/ for generated schemas");
-    console.log(
-      "📁 Check ../strapi-project/src/components/ for generated components"
-    );
-    console.log(
-      "📄 Check schema-generation-report.json for detailed mapping info"
-    );
-  } catch (error) {
-    console.error("❌ Schema generation failed:", error);
+    if (!schemaAnalysis.has(doc._type)) {
+      schemaAnalysis.set(doc._type, {
+        name: doc._type,
+        type: "document",
+        fields: [],
+      });
+    }
+
+    const schema = schemaAnalysis.get(doc._type);
+
+    // Infer fields from actual data
+    for (const [fieldName, fieldValue] of Object.entries(doc)) {
+      if (fieldName.startsWith("_")) continue;
+
+      const existingField = schema.fields.find((f) => f.name === fieldName);
+      if (!existingField) {
+        schema.fields.push({
+          name: fieldName,
+          type: inferFieldType(fieldValue),
+          title: fieldName.charAt(0).toUpperCase() + fieldName.slice(1),
+        });
+      }
+    }
+  }
+
+  // Convert inferred schemas
+  for (const schema of schemaAnalysis.values()) {
+    await generator.convertSchema(schema);
+  }
+
+  await generator.generateComponents();
+  await generator.generateSchemas();
+  generator.printSummary();
+}
+
+// Helper function to infer field types from data
+function inferFieldType(value) {
+  if (value === null || value === undefined) return "string";
+
+  if (typeof value === "string") {
+    if (value.includes("@")) return "email";
+    if (value.startsWith("http")) return "url";
+    return "string";
+  }
+
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  if (Array.isArray(value)) return "array";
+  if (typeof value === "object") {
+    if (value._type === "slug") return "slug";
+    if (value._type === "image") return "image";
+    if (value._type === "file") return "file";
+    if (value._ref) return "reference";
+    return "object";
+  }
+
+  return "string";
+}
+
+// Export the class and usage functions
+module.exports = {
+  DynamicSchemaGenerator,
+  generateFromSchemaDirectory,
+  generateFromIndexFile,
+  generateFromExportedData,
+};
+
+// Command line usage
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const method = args[0] || "directory";
+
+  switch (method) {
+    case "directory":
+      generateFromSchemaDirectory();
+      break;
+    case "index":
+      generateFromIndexFile();
+      break;
+    case "data":
+      generateFromExportedData();
+      break;
+    default:
+      console.log(
+        "Usage: node dynamic-schema-generator.js [directory|index|data]"
+      );
   }
 }
-
-// Run if this file is executed directly
-if (require.main === module) {
-  main();
-}
-
-module.exports = DynamicSchemaGenerator;
