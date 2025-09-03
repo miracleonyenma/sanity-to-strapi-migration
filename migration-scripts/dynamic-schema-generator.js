@@ -196,7 +196,7 @@ class DynamicSchemaGenerator {
 
     // More sophisticated field extraction using regex
     const fieldPattern =
-      /defineField\(\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}\)/gs;
+      /defineField\(\s*\{([^{}]*(?:\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}[^{}]*)*)\}\)/gs;
     const fieldMatches = content.matchAll(fieldPattern);
 
     for (const match of fieldMatches) {
@@ -233,22 +233,28 @@ class DynamicSchemaGenerator {
         field.options = options;
       }
 
-      // Extract array 'of' property
-      const arrayOf = this.extractArrayOf(fieldContent);
-      if (arrayOf) {
-        field.of = arrayOf;
+      // Extract array 'of' property - IMPROVED VERSION
+      if (type === "array") {
+        const arrayOf = this.extractArrayOf(fieldContent);
+        if (arrayOf) {
+          field.of = arrayOf;
+        }
       }
 
-      // Extract reference 'to' property
-      const referenceTo = this.extractReferenceTo(fieldContent);
-      if (referenceTo) {
-        field.to = referenceTo;
+      // Extract reference 'to' property - FIXED VERSION
+      if (type === "reference") {
+        const referenceTo = this.extractReferenceTo(fieldContent);
+        if (referenceTo) {
+          field.to = referenceTo;
+        }
       }
 
-      // Extract nested fields for objects - IMPROVED VERSION
-      const nestedFields = this.extractNestedFields(fieldContent);
-      if (nestedFields && nestedFields !== "HAS_NESTED_FIELDS") {
-        field.fields = nestedFields;
+      // Extract nested fields for objects
+      if (type === "object") {
+        const nestedFields = this.extractNestedFields(fieldContent);
+        if (nestedFields && nestedFields !== "HAS_NESTED_FIELDS") {
+          field.fields = nestedFields;
+        }
       }
 
       return field;
@@ -328,47 +334,240 @@ class DynamicSchemaGenerator {
     return Object.keys(options).length > 0 ? options : null;
   }
 
-  extractArrayOf(content) {
-    const ofMatch = content.match(/of:\s*\[([^\]]*)\]/);
-    if (!ofMatch) return null;
+  // COMPLETELY FIXED extractReferenceTo method
+  extractReferenceTo(content) {
+    console.log(`\n🔍 Extracting reference 'to' from field content`);
+    console.log(`📋 Field content: "${content}"`);
+
+    // Look for the 'to' property - improved regex to handle nested arrays and objects
+    const toMatch = content.match(
+      /to:\s*\[\s*\{\s*type:\s*['"']([^'"']+)['"']\s*\}\s*\]/
+    );
+
+    if (!toMatch) {
+      console.log(`❌ No 'to' property found in reference field`);
+      return null;
+    }
+
+    const targetType = toMatch[1];
+    console.log(`🎯 Found target type: "${targetType}"`);
+
+    return [{ type: targetType }];
+  }
+
+  // COMPLETELY REWRITTEN extractArrayOf method with improved reference extraction
+  extractArrayOf(fieldContent) {
+    console.log(`\n🔍 Extracting array 'of' from field content`);
+    console.log(
+      `📋 Raw field content length: ${fieldContent.length} characters`
+    );
+
+    // IMPROVED: Better regex to capture complete 'of' property including nested structures
+    const ofPattern = /of:\s*\[((?:[^[\]]*(?:\[[^\]]*\])?)*)\]/s;
+    const ofMatch = fieldContent.match(ofPattern);
+
+    if (!ofMatch) {
+      console.log(`❌ No 'of' property found in array field`);
+      console.log(
+        `🔍 Field content preview: "${fieldContent.substring(0, 200)}..."`
+      );
+      return null;
+    }
+
+    const ofContent = ofMatch[1].trim();
+    console.log(`📋 Found 'of' content: "${ofContent}"`);
+    console.log(`📏 Of content length: ${ofContent.length} characters`);
+
+    // More detailed logging for debugging
+    if (ofContent.includes("reference")) {
+      console.log(`🔗 Reference detected in 'of' content`);
+      console.log(
+        `🔍 Checking if content ends properly: ends with '}' = ${ofContent.endsWith(
+          "}"
+        )}`
+      );
+      console.log(`🔍 Contains 'to:' = ${ofContent.includes("to:")}`);
+    }
+
+    const items = [];
 
     try {
-      const ofContent = ofMatch[1];
-      const items = [];
-
-      // Handle simple types like [{type: 'string'}]
-      const typeMatches = ofContent.matchAll(
-        /\{[^}]*type:\s*['"]([^'"]*)['"]/g
+      // Split by commas that are not inside nested brackets/braces - IMPROVED VERSION
+      const arrayItems = this.parseArrayItems(ofContent);
+      console.log(
+        `📦 Parsed array items (count: ${arrayItems.length}):`,
+        arrayItems
       );
-      for (const match of typeMatches) {
-        items.push({ type: match[1] });
+
+      for (let i = 0; i < arrayItems.length; i++) {
+        const itemStr = arrayItems[i];
+        const trimmedItem = itemStr.trim();
+        if (!trimmedItem) continue;
+
+        console.log(`\n🔸 Processing item ${i + 1}: "${trimmedItem}"`);
+        console.log(`📏 Item length: ${trimmedItem.length} characters`);
+
+        // FIXED: More robust reference pattern matching
+        if (
+          trimmedItem.includes("type: 'reference'") ||
+          trimmedItem.includes('type: "reference"')
+        ) {
+          console.log(`🔗 Found reference type in item`);
+          console.log(`🔍 Full reference item: "${trimmedItem}"`);
+
+          // IMPROVED: Multiple regex patterns to try
+          let targetType = null;
+
+          // Pattern 1: Standard format
+          let toMatch = trimmedItem.match(
+            /to:\s*\[\s*\{\s*type:\s*['"']([^'"']+)['"']\s*\}\s*\]/
+          );
+          if (toMatch) {
+            targetType = toMatch[1];
+            console.log(`✅ Pattern 1 matched - target type: "${targetType}"`);
+          } else {
+            // Pattern 2: Incomplete closing brackets
+            toMatch = trimmedItem.match(
+              /to:\s*\[\s*\{\s*type:\s*['"']([^'"']+)['"']/
+            );
+            if (toMatch) {
+              targetType = toMatch[1];
+              console.log(
+                `✅ Pattern 2 matched (incomplete brackets) - target type: "${targetType}"`
+              );
+            } else {
+              // Pattern 3: Look for any type after 'to:'
+              toMatch = trimmedItem.match(/to:.*?type:\s*['"']([^'"']+)['"']/);
+              if (toMatch) {
+                targetType = toMatch[1];
+                console.log(
+                  `✅ Pattern 3 matched (flexible) - target type: "${targetType}"`
+                );
+              }
+            }
+          }
+
+          if (targetType) {
+            console.log(`🎯 Extracted target type: "${targetType}"`);
+
+            items.push({
+              type: "reference",
+              to: [{ type: targetType }],
+            });
+
+            console.log(`✅ Added reference with target: ${targetType}`);
+          } else {
+            console.warn(
+              `⚠️ Reference found but could not extract target type from: ${trimmedItem}`
+            );
+            console.log(`🔍 All regex attempts failed. Content analysis:`);
+            console.log(`   - Contains 'to:': ${trimmedItem.includes("to:")}`);
+            console.log(
+              `   - Contains 'type:': ${trimmedItem.includes("type:")}`
+            );
+            console.log(
+              `   - Contains quotes: ${
+                trimmedItem.includes("'") || trimmedItem.includes('"')
+              }`
+            );
+
+            // Fallback: add reference without target (will be handled as json later)
+            items.push({
+              type: "reference",
+              to: [],
+            });
+          }
+          continue;
+        }
+
+        // Check for simple type with optional options (like image with hotspot)
+        const typeMatch = trimmedItem.match(/\{\s*type:\s*['"]([^'"]+)['"]/);
+        if (typeMatch) {
+          const itemType = typeMatch[1];
+          const item = { type: itemType };
+
+          // Extract options if present
+          const optionsMatch = trimmedItem.match(/options:\s*\{([^}]+)\}/);
+          if (optionsMatch) {
+            item.options = {};
+            const optionsContent = optionsMatch[1];
+
+            // Check for hotspot option
+            if (optionsContent.includes("hotspot: true")) {
+              item.options.hotspot = true;
+            }
+          }
+
+          items.push(item);
+          console.log(
+            `✅ Added ${itemType} type with options:`,
+            item.options || "none"
+          );
+        } else {
+          console.warn(`⚠️ Could not parse item: "${trimmedItem}"`);
+        }
       }
 
+      console.log(
+        `🎉 Final extracted items (total: ${items.length}):`,
+        JSON.stringify(items, null, 2)
+      );
       return items.length > 0 ? items : null;
     } catch (error) {
+      console.warn('Error parsing array "of" content:', error.message);
+      console.warn("Stack trace:", error.stack);
       return null;
     }
   }
 
-  extractReferenceTo(content) {
-    const toMatch = content.match(/to:\s*\[([^\]]*)\]/);
-    if (!toMatch) return null;
+  // Helper method to properly split array items accounting for nested structures
+  parseArrayItems(content) {
+    const items = [];
+    let currentItem = "";
+    let braceDepth = 0;
+    let bracketDepth = 0;
+    let inQuotes = false;
+    let quoteChar = "";
 
-    try {
-      const toContent = toMatch[1];
-      const items = [];
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const prevChar = i > 0 ? content[i - 1] : "";
 
-      const typeMatches = toContent.matchAll(
-        /\{[^}]*type:\s*['"]([^'"]*)['"]/g
-      );
-      for (const match of typeMatches) {
-        items.push({ type: match[1] });
+      // Handle quotes
+      if ((char === '"' || char === "'") && prevChar !== "\\") {
+        if (!inQuotes) {
+          inQuotes = true;
+          quoteChar = char;
+        } else if (char === quoteChar) {
+          inQuotes = false;
+          quoteChar = "";
+        }
       }
 
-      return items.length > 0 ? items : null;
-    } catch (error) {
-      return null;
+      if (!inQuotes) {
+        // Track brace and bracket depth
+        if (char === "{") braceDepth++;
+        else if (char === "}") braceDepth--;
+        else if (char === "[") bracketDepth++;
+        else if (char === "]") bracketDepth--;
+
+        // Split on commas only at the top level
+        if (char === "," && braceDepth === 0 && bracketDepth === 0) {
+          items.push(currentItem.trim());
+          currentItem = "";
+          continue;
+        }
+      }
+
+      currentItem += char;
     }
+
+    // Add the last item
+    if (currentItem.trim()) {
+      items.push(currentItem.trim());
+    }
+
+    return items;
   }
 
   // IMPROVED nested fields extraction
@@ -488,10 +687,15 @@ class DynamicSchemaGenerator {
   }
 
   convertField(field, parentSchemaName) {
+    console.log(
+      `\n🔧 Converting field: ${field.name} (type: ${field.type}) in ${parentSchemaName}`
+    );
+
     const fieldType = field.type;
 
     // Handle special cases first
     if (fieldType === "slug") {
+      console.log(`🏷️ Handling slug field`);
       return {
         type: "uid",
         targetField: field.options?.source || "title",
@@ -500,20 +704,23 @@ class DynamicSchemaGenerator {
     }
 
     if (fieldType === "reference") {
+      console.log(`🔗 Handling reference field`);
       const targetType = field.to?.[0]?.type;
+
       if (targetType) {
         // Store relationship for later processing
         this.storeRelationship(parentSchemaName, field.name, targetType, false);
 
         return {
           type: "relation",
-          relation: "oneToMany", // Changed from manyToOne to oneToMany as per expected output
+          relation: "oneToMany",
           target: `api::${targetType}.${targetType}`,
         };
       }
     }
 
     if (fieldType === "array") {
+      console.log(`📚 Delegating to handleArrayField`);
       return this.handleArrayField(field, parentSchemaName);
     }
 
@@ -525,7 +732,7 @@ class DynamicSchemaGenerator {
       return {
         type: "media",
         multiple: false,
-        allowedTypes: ["images", "files", "videos", "audios"], // Match expected format
+        allowedTypes: ["images", "files", "videos", "audios"],
       };
     }
 
@@ -556,28 +763,93 @@ class DynamicSchemaGenerator {
   }
 
   handleArrayField(field, parentSchemaName) {
-    const arrayItemType = field.of?.[0]?.type;
+    console.log(
+      `🔍 Processing array field: ${field.name} in ${parentSchemaName}`
+    );
+    console.log(`📋 Field object:`, JSON.stringify(field, null, 2));
 
-    if (!arrayItemType) {
-      return { type: "json" }; // Fallback for complex arrays
+    const arrayItems = field.of;
+    console.log(`📝 Array items:`, JSON.stringify(arrayItems, null, 2));
+
+    if (!arrayItems || arrayItems.length === 0) {
+      console.log(`❌ No array items found, returning json type`);
+      return { type: "json" };
     }
 
-    if (arrayItemType === "reference") {
-      const targetType = field.of[0].to?.[0]?.type;
-      if (targetType) {
-        this.storeRelationship(parentSchemaName, field.name, targetType, true);
+    // Handle array of references - COMPLETELY FIXED
+    const referenceItems = arrayItems.filter(
+      (item) => item.type === "reference"
+    );
+    console.log(`🔗 Found ${referenceItems.length} reference items`);
 
-        return {
-          type: "relation",
-          relation: "oneToMany", // Changed from manyToMany to oneToMany as per expected output
-          target: `api::${targetType}.${targetType}`,
-        };
+    if (referenceItems.length > 0) {
+      if (referenceItems.length === 1) {
+        console.log(`✅ Single reference type found`);
+        const referenceItem = referenceItems[0];
+
+        // FIXED: Check if the reference has valid target types
+        const targetType = referenceItem.to?.[0]?.type;
+        console.log(`🎯 Target type:`, targetType);
+
+        if (targetType) {
+          console.log(
+            `📞 Storing relationship: ${parentSchemaName}.${field.name} -> ${targetType}`
+          );
+
+          // Store relationship for later processing
+          this.storeRelationship(
+            parentSchemaName,
+            field.name,
+            targetType,
+            true // This is an array relationship
+          );
+
+          const relationResult = {
+            type: "relation",
+            relation: "oneToMany",
+            target: `api::${targetType}.${targetType}`,
+          };
+          console.log(
+            `🎉 Returning relation:`,
+            JSON.stringify(relationResult, null, 2)
+          );
+
+          return relationResult;
+        } else {
+          console.warn(
+            `⚠️ Reference found but no valid target type, falling back to json`
+          );
+          return { type: "json" };
+        }
+      } else {
+        // Multiple reference types - use json for now
+        console.warn(
+          `⚠️ Field ${field.name} has multiple reference types, using json`
+        );
+        return { type: "json" };
       }
     }
 
-    if (arrayItemType === "string") {
-      // Create a component for array of strings with better naming
-      const componentName = field.name; // Use field name directly
+    // Handle array of images - FIXED
+    const imageItems = arrayItems.filter(
+      (item) => item.type === "image" || item.type === "file"
+    );
+    console.log(`🖼️ Found ${imageItems.length} image/file items`);
+
+    if (imageItems.length > 0) {
+      console.log(`✅ Returning media array for images/files`);
+      return {
+        type: "media",
+        multiple: true,
+        allowedTypes: ["images", "files", "videos", "audios"],
+      };
+    }
+
+    // Handle other array types
+    const firstItem = arrayItems[0];
+
+    if (firstItem.type === "string") {
+      const componentName = field.name;
       const componentKey = this.getComponentKey(field.name);
 
       this.createStringArrayComponent(
@@ -593,20 +865,11 @@ class DynamicSchemaGenerator {
       };
     }
 
-    if (arrayItemType === "image" || arrayItemType === "file") {
-      return {
-        type: "media",
-        multiple: true,
-        allowedTypes: ["images", "files", "videos", "audios"], // Match expected format
-      };
+    if (firstItem.type === "block") {
+      return { type: "blocks" };
     }
 
-    if (arrayItemType === "block") {
-      return { type: "blocks" }; // Strapi rich text
-    }
-
-    if (arrayItemType === "object" || this.components.has(arrayItemType)) {
-      // Reference existing component or create new one
+    if (firstItem.type === "object" || this.components.has(firstItem.type)) {
       const componentKey = this.getComponentKey(field.name);
       return {
         type: "component",
@@ -615,7 +878,6 @@ class DynamicSchemaGenerator {
       };
     }
 
-    // Fallback for complex arrays
     return { type: "json" };
   }
 
@@ -651,7 +913,6 @@ class DynamicSchemaGenerator {
       options: {},
       attributes: {
         name: {
-          // Changed from 'value' to 'name' as per expected output
           type: "string",
         },
       },
@@ -717,7 +978,7 @@ class DynamicSchemaGenerator {
       fieldName,
       targetType: toType,
       isArray,
-      relation: "oneToMany", // Changed default to oneToMany
+      relation: "oneToMany",
     });
   }
 
