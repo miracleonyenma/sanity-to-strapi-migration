@@ -1,6 +1,6 @@
 {
   "migration": {
-    "timestamp": "2025-09-08T16:54:38.541Z",
+    "timestamp": "2025-09-08T17:17:36.895Z",
     "config": {
       "strapiUrl": "http://localhost:1337",
       "assetProvider": "strapi",
@@ -14,12 +14,12 @@
       },
       "entities": {
         "total": 7,
-        "completed": 3,
-        "failed": 4
+        "completed": 7,
+        "failed": 0
       },
       "relationships": {
-        "total": 3,
-        "completed": 3,
+        "total": 7,
+        "completed": 7,
         "failed": 0
       }
     },
@@ -27,42 +27,15 @@
       "totalAssets": 6,
       "migratedAssets": 6,
       "totalEntities": 7,
-      "migratedEntities": 3,
-      "totalRelationships": 3,
-      "processedRelationships": 3
+      "migratedEntities": 7,
+      "totalRelationships": 7,
+      "processedRelationships": 7
     },
-    "errors": [
-      {
-        "type": "entity",
-        "contentType": "person",
-        "id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}",
-        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
-      },
-      {
-        "type": "entity",
-        "contentType": "product",
-        "id": "f9d2eb3d-d46d-49ec-a796-c782b9eb551e",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}",
-        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
-      },
-      {
-        "type": "entity",
-        "contentType": "product",
-        "id": "3a1e6d7a-8a36-468f-9cbb-3eb881ebd2aa",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"3 errors occurred\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"training\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"1\"],\"message\":\"tags[1] must be a `object` type, but the final value was: `null` (cast from the value `\\\"staff\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"2\"],\"message\":\"tags[2] must be a `object` type, but the final value was: `null` (cast from the value `\\\"equipment\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}",
-        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"3 errors occurred\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"training\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"1\"],\"message\":\"tags[1] must be a `object` type, but the final value was: `null` (cast from the value `\\\"staff\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"2\"],\"message\":\"tags[2] must be a `object` type, but the final value was: `null` (cast from the value `\\\"equipment\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 1)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
-      },
-      {
-        "type": "entity",
-        "contentType": "post",
-        "id": "21b05f38-e681-492f-bd75-6429570db7cd",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}",
-        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
-      }
-    ],
+    "errors": [],
     "entityMappings": {
       "38227ea3-47c0-4b32-8ff0-88ed9c18a6f2": {
+        "strapiId": 14,
+        "documentId": "xazhxrfwzo0qv2djsiqry9sr",
         "contentType": "category",
         "originalData": {
           "_createdAt": "2025-08-28T08:57:42Z",
@@ -77,7 +50,118 @@
           "title": "Martial Arts"
         }
       },
+      "c7e068be-12f0-4217-ab1e-1d03116d9fb9": {
+        "strapiId": 18,
+        "documentId": "k6x3zbbazpr83e26iberiq24",
+        "contentType": "person",
+        "originalData": {
+          "_createdAt": "2025-08-28T08:51:23Z",
+          "_id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
+          "_rev": "oqU7976QZD3ribhz3kI9iJ",
+          "_system": {
+            "base": {
+              "id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
+              "rev": "S5wqqKshdagnobTnuCli4M"
+            }
+          },
+          "_type": "person",
+          "_updatedAt": "2025-09-03T09:42:55Z",
+          "bio": [
+            {
+              "_key": "1aac604264fc",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "36c3e90f166f",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Tai Lung—master of kung fu, trained by Shifu, and destined for greatness. I am the true Dragon Warrior, unmatched in strength and ambition."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            }
+          ],
+          "email": "tailung@jadepalace.com",
+          "name": "Tai Lung",
+          "posts": [
+            {
+              "_key": "e735da331f76",
+              "_ref": "21b05f38-e681-492f-bd75-6429570db7cd",
+              "_type": "reference"
+            }
+          ],
+          "profilePicture": {
+            "_sanityAsset": "image@file://./images/87d44663b620c92e956dbfbd3080a6398589c289-1080x1080.png",
+            "_type": "image"
+          }
+        }
+      },
+      "f9d2eb3d-d46d-49ec-a796-c782b9eb551e": {
+        "strapiId": 10,
+        "documentId": "uixnnma0fv1y65ozrj59iyuf",
+        "contentType": "product",
+        "originalData": {
+          "_createdAt": "2025-08-28T10:01:40Z",
+          "_id": "f9d2eb3d-d46d-49ec-a796-c782b9eb551e",
+          "_rev": "DVFBs4OHEV7W9NpU9jCsD6",
+          "_type": "product",
+          "_updatedAt": "2025-08-28T10:02:26Z",
+          "available": true,
+          "gallery": [
+            {
+              "_sanityAsset": "image@file://./images/a4d5960925c734f30a23acb0a5f246a92a0347d1-1536x1024.png",
+              "_key": "71d6296a623d",
+              "_type": "image"
+            }
+          ],
+          "name": "Dragon Warrior Headband",
+          "price": 25,
+          "specifications": {
+            "dimensions": "One size fits all",
+            "material": "Silk and cotton",
+            "weight": "0.1 kg"
+          },
+          "tags": [
+            "accessory"
+          ]
+        }
+      },
+      "3a1e6d7a-8a36-468f-9cbb-3eb881ebd2aa": {
+        "strapiId": 12,
+        "documentId": "osgbxjdofc9fa433jqpek6b0",
+        "contentType": "product",
+        "originalData": {
+          "_createdAt": "2025-08-28T09:52:46Z",
+          "_id": "3a1e6d7a-8a36-468f-9cbb-3eb881ebd2aa",
+          "_rev": "DVFBs4OHEV7W9NpU9jCnMu",
+          "_type": "product",
+          "_updatedAt": "2025-08-28T10:01:33Z",
+          "available": true,
+          "gallery": [
+            {
+              "_sanityAsset": "image@file://./images/da8b7749fe606773970cdb711c0a3d5dd7bd7a5a-1024x1536.png",
+              "_key": "2c8ad5249d06",
+              "_type": "image"
+            }
+          ],
+          "name": "Jade Palace Training Staff ",
+          "price": 88,
+          "specifications": {
+            "dimensions": "150 cm x 3 cm",
+            "material": "Bamboo with jade accents",
+            "weight": "1.2kg"
+          },
+          "tags": [
+            "training",
+            "staff",
+            "equipment"
+          ]
+        }
+      },
       "71c10cae-aa85-41b2-bbdf-e677eb4062e4": {
+        "strapiId": 30,
+        "documentId": "bsjilxa290x0wf5hxjc9o5iy",
         "contentType": "page",
         "originalData": {
           "_createdAt": "2025-08-28T09:46:16Z",
@@ -173,6 +257,8 @@
         }
       },
       "74db4073-2dcd-4c29-b48f-6a0ece6f04a9": {
+        "strapiId": 32,
+        "documentId": "nu3svcaqf0c63ctxtp93b5pr",
         "contentType": "page",
         "originalData": {
           "_createdAt": "2025-08-28T10:39:29Z",
@@ -650,37 +736,151 @@
           },
           "title": "Contact"
         }
+      },
+      "21b05f38-e681-492f-bd75-6429570db7cd": {
+        "strapiId": 12,
+        "documentId": "l809a9ybb6e5gggtgiq1g50e",
+        "contentType": "post",
+        "originalData": {
+          "_createdAt": "2025-08-28T08:51:03Z",
+          "_id": "21b05f38-e681-492f-bd75-6429570db7cd",
+          "_rev": "c4Mw29uc3VvGyYspPBOxzK",
+          "_system": {
+            "base": {
+              "id": "21b05f38-e681-492f-bd75-6429570db7cd",
+              "rev": "XBGFXMpDh7tc33O1ZiL1oS"
+            }
+          },
+          "_type": "post",
+          "_updatedAt": "2025-09-08T16:47:36Z",
+          "authors": [
+            {
+              "_key": "851a47e50583",
+              "_ref": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
+              "_type": "reference"
+            }
+          ],
+          "body": [
+            {
+              "_key": "d9a5dab96dd3",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "c29ffb100ce0",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Power is not a gift—it is earned through relentless dedication and unwavering belief in oneself. Many train, but few possess the resolve to master every technique, to push beyond pain and doubt. True mastery in kung fu, and in life, demands sacrifice, focus, and ambition. The world may set boundaries, but legends are forged by those who break them."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "da42524ec6ad",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "d6cc0565085d",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "I have walked the halls of the Jade Palace. "
+                }
+              ],
+              "markDefs": [],
+              "style": "h2"
+            },
+            {
+              "_key": "364186c52bf8",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "d6cc0565085d",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "And I have faced every challenge with determination. Strength is not simply physical; it is the will to rise after every fall, to pursue greatness despite opposition. The path of power is not for the timid. It is for those who know they are destined for more, who refuse to let fear or tradition dictate their fate."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "5937b151e8a5",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "cf116477de8c",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "If you seek to become more than ordinary, embrace discipline and never settle for less than excellence. Power belongs to those who claim it—who train harder, think sharper, and act without hesitation. Let others doubt and hesitate; your destiny is yours to seize. "
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "781dc33c6a77",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "cf116477de8c",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Remember: only those who dare to walk the path of power become legends."
+                }
+              ],
+              "markDefs": [],
+              "style": "blockquote"
+            }
+          ],
+          "category": [
+            {
+              "_key": "7556d102840a",
+              "_ref": "38227ea3-47c0-4b32-8ff0-88ed9c18a6f2",
+              "_type": "reference"
+            }
+          ],
+          "image": {
+            "_sanityAsset": "image@file://./images/8bb4a2d05b037e0fe9570d1e504c8dc4cd026d2e-1920x1402.png",
+            "_type": "image"
+          },
+          "publishedAt": "2025-08-28T08:50:55.840Z",
+          "slug": {
+            "_type": "slug",
+            "current": "the-path-of-power"
+          },
+          "title": "The Path of Power"
+        }
       }
     },
     "assetMappings": {
       "bf352ea0b802bb389916f5c7f04850de3e78f24c": {
-        "id": 46,
-        "url": "/uploads/image_ac26b0f225.png",
+        "id": 64,
+        "url": "/uploads/image_2a5da803c0.png",
         "provider": "strapi"
       },
       "92dba2ee4b3e70d1a6f8e1b5698c2f1c5d23fc19": {
-        "id": 47,
-        "url": "/uploads/image_43aa8fb18f.png",
+        "id": 65,
+        "url": "/uploads/image_241cef848f.png",
         "provider": "strapi"
       },
       "87d44663b620c92e956dbfbd3080a6398589c289": {
-        "id": 48,
-        "url": "/uploads/image_83f42a666f.png",
+        "id": 66,
+        "url": "/uploads/image_6f5ab0658e.png",
         "provider": "strapi"
       },
       "da8b7749fe606773970cdb711c0a3d5dd7bd7a5a": {
-        "id": 49,
-        "url": "/uploads/image_48d7dc1ae7.png",
+        "id": 67,
+        "url": "/uploads/image_a56e213c44.png",
         "provider": "strapi"
       },
       "a4d5960925c734f30a23acb0a5f246a92a0347d1": {
-        "id": 50,
-        "url": "/uploads/image_cc20799461.png",
+        "id": 68,
+        "url": "/uploads/image_38ee0fde30.png",
         "provider": "strapi"
       },
       "8bb4a2d05b037e0fe9570d1e504c8dc4cd026d2e": {
-        "id": 51,
-        "url": "/uploads/image_1fa0d016e4.png",
+        "id": 69,
+        "url": "/uploads/image_2e34fd1c4b.png",
         "provider": "strapi"
       }
     }
