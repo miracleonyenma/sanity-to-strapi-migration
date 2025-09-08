@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-09-03T08:58:16.952Z",
+  "generatedAt": "2025-09-04T07:02:15.450Z",
   "summary": {
     "totalSchemas": 5,
     "totalComponents": 3,
@@ -23,7 +23,7 @@
       "name": "person",
       "type": "collection",
       "documentCount": 1,
-      "fieldCount": 4
+      "fieldCount": 5
     },
     {
       "name": "post",
@@ -44,19 +44,7 @@
     "specification.specificationses"
   ],
   "relationships": {
-    "post": [
-      {
-        "fieldName": "authors",
-        "targetType": "person",
-        "isArray": true,
-        "relation": "oneToMany"
-      },
-      {
-        "fieldName": "categories",
-        "targetType": "category",
-        "isArray": true,
-        "relation": "oneToMany"
-      }
-    ]
+    "person": {},
+    "post": {}
   }
 }

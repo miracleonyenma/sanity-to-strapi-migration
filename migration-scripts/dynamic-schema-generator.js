@@ -20,7 +20,7 @@ class DynamicSchemaGenerator {
       reference: "relation",
       array: this.handleArrayType.bind(this),
       object: "component",
-      block: "blocks", // Strapi's rich text field type
+      block: "blocks",
     };
 
     this.schemas = new Map();
@@ -28,6 +28,10 @@ class DynamicSchemaGenerator {
     this.relationships = new Map();
     this.documentCounts = new Map();
     this.singletonTypes = new Set();
+
+    // NEW: Store all detected references for bidirectional analysis
+    this.allReferences = new Map(); // schemaName -> [{fieldName, targetType, isArray}]
+    this.processedRelationships = new Set(); // Track processed relationships to avoid duplicates
   }
 
   // Main entry point for schema generation
@@ -163,6 +167,260 @@ class DynamicSchemaGenerator {
       console.warn(`Could not parse schema file ${filePath}:`, error.message);
       return null;
     }
+  }
+
+  // NEW: Collect all references before processing relationships
+  async collectAllReferences() {
+    console.log("\n🔍 Collecting all references for bidirectional analysis...");
+
+    for (const [schemaName, schema] of this.schemas) {
+      const references = [];
+
+      for (const field of schema.fields) {
+        this.extractReferencesFromField(field, references);
+      }
+
+      if (references.length > 0) {
+        this.allReferences.set(schemaName, references);
+        console.log(`📋 Schema ${schemaName} has references:`, references);
+      }
+    }
+  }
+
+  // NEW: Extract references from a field (handles nested structures)
+  extractReferencesFromField(field, references) {
+    if (field.type === "reference" && field.to?.[0]?.type) {
+      references.push({
+        fieldName: field.name,
+        targetType: field.to[0].type,
+        isArray: false,
+      });
+    } else if (field.type === "array" && field.of) {
+      const referenceItems = field.of.filter(
+        (item) => item.type === "reference"
+      );
+      if (referenceItems.length > 0 && referenceItems[0].to?.[0]?.type) {
+        references.push({
+          fieldName: field.name,
+          targetType: referenceItems[0].to[0].type,
+          isArray: true,
+        });
+      }
+    }
+  }
+
+  // NEW: Analyze bidirectional relationships
+  analyzeBidirectionalRelationships() {
+    console.log("\n🔗 Analyzing bidirectional relationships...");
+
+    const relationshipMap = new Map(); // key: "schemaA-schemaB", value: relationship details
+
+    for (const [fromSchema, references] of this.allReferences) {
+      for (const ref of references) {
+        const toSchema = ref.targetType;
+        const relationshipKey = this.getRelationshipKey(fromSchema, toSchema);
+
+        if (!relationshipMap.has(relationshipKey)) {
+          relationshipMap.set(relationshipKey, {
+            schemaA: fromSchema,
+            schemaB: toSchema,
+            aToB: null,
+            bToA: null,
+          });
+        }
+
+        const relationship = relationshipMap.get(relationshipKey);
+        if (fromSchema === relationship.schemaA) {
+          relationship.aToB = ref;
+        } else {
+          relationship.bToA = ref;
+        }
+      }
+    }
+
+    // Process relationships and determine types
+    for (const [key, relationship] of relationshipMap) {
+      this.processRelationship(relationship);
+    }
+  }
+
+  // NEW: Generate consistent relationship key for bidirectional matching
+  getRelationshipKey(schemaA, schemaB) {
+    return [schemaA, schemaB].sort().join("-");
+  }
+
+  // NEW: Process individual relationship and determine type
+  processRelationship(relationship) {
+    const { schemaA, schemaB, aToB, bToA } = relationship;
+
+    console.log(
+      `\n🔍 Processing relationship between ${schemaA} and ${schemaB}`
+    );
+    console.log(`   A->B:`, aToB);
+    console.log(`   B->A:`, bToA);
+
+    // Both sides have references (bidirectional)
+    if (aToB && bToA) {
+      if (aToB.isArray && bToA.isArray) {
+        // manyToMany
+        console.log(`✅ Detected manyToMany relationship`);
+        this.addManyToManyRelationship(
+          schemaA,
+          aToB.fieldName,
+          schemaB,
+          bToA.fieldName
+        );
+      } else if (aToB.isArray && !bToA.isArray) {
+        // oneToMany (B has one A, A has many B)
+        console.log(
+          `✅ Detected oneToMany relationship (${schemaB} -> ${schemaA})`
+        );
+        this.addOneToManyRelationship(
+          schemaB,
+          bToA.fieldName,
+          schemaA,
+          aToB.fieldName
+        );
+      } else if (!aToB.isArray && bToA.isArray) {
+        // oneToMany (A has one B, B has many A)
+        console.log(
+          `✅ Detected oneToMany relationship (${schemaA} -> ${schemaB})`
+        );
+        this.addOneToManyRelationship(
+          schemaA,
+          aToB.fieldName,
+          schemaB,
+          bToA.fieldName
+        );
+      } else {
+        // Both are single references - oneToOne bidirectional
+        console.log(`✅ Detected bidirectional oneToOne relationship`);
+        this.addBidirectionalOneToOneRelationship(
+          schemaA,
+          aToB.fieldName,
+          schemaB,
+          bToA.fieldName
+        );
+      }
+    }
+    // Only one side has reference (unidirectional)
+    else if (aToB && !bToA) {
+      if (aToB.isArray) {
+        console.log(`✅ Detected unidirectional oneToMany relationship`);
+        this.addUnidirectionalOneToManyRelationship(
+          schemaA,
+          aToB.fieldName,
+          schemaB
+        );
+      } else {
+        console.log(`✅ Detected unidirectional oneToOne relationship`);
+        this.addUnidirectionalOneToOneRelationship(
+          schemaA,
+          aToB.fieldName,
+          schemaB
+        );
+      }
+    } else if (!aToB && bToA) {
+      if (bToA.isArray) {
+        console.log(`✅ Detected unidirectional oneToMany relationship`);
+        this.addUnidirectionalOneToManyRelationship(
+          schemaB,
+          bToA.fieldName,
+          schemaA
+        );
+      } else {
+        console.log(`✅ Detected unidirectional oneToOne relationship`);
+        this.addUnidirectionalOneToOneRelationship(
+          schemaB,
+          bToA.fieldName,
+          schemaA
+        );
+      }
+    }
+  }
+
+  // NEW: Add manyToMany relationship
+  addManyToManyRelationship(schemaA, fieldA, schemaB, fieldB) {
+    this.storeProcessedRelationship(schemaA, fieldA, schemaB, {
+      type: "relation",
+      relation: "manyToMany",
+      target: `api::${schemaB}.${schemaB}`,
+      mappedBy: fieldB,
+    });
+
+    this.storeProcessedRelationship(schemaB, fieldB, schemaA, {
+      type: "relation",
+      relation: "manyToMany",
+      target: `api::${schemaA}.${schemaA}`,
+      inversedBy: fieldA,
+    });
+  }
+
+  // NEW: Add oneToMany relationship
+  addOneToManyRelationship(oneSchema, oneField, manySchema, manyField) {
+    // "One" side
+    this.storeProcessedRelationship(oneSchema, oneField, manySchema, {
+      type: "relation",
+      relation: "oneToMany",
+      target: `api::${manySchema}.${manySchema}`,
+      mappedBy: manyField,
+    });
+
+    // "Many" side
+    this.storeProcessedRelationship(manySchema, manyField, oneSchema, {
+      type: "relation",
+      relation: "manyToOne",
+      target: `api::${oneSchema}.${oneSchema}`,
+      inversedBy: oneField,
+    });
+  }
+
+  // NEW: Add bidirectional oneToOne relationship
+  addBidirectionalOneToOneRelationship(schemaA, fieldA, schemaB, fieldB) {
+    this.storeProcessedRelationship(schemaA, fieldA, schemaB, {
+      type: "relation",
+      relation: "oneToOne",
+      target: `api::${schemaB}.${schemaB}`,
+      mappedBy: fieldB,
+    });
+
+    this.storeProcessedRelationship(schemaB, fieldB, schemaA, {
+      type: "relation",
+      relation: "oneToOne",
+      target: `api::${schemaA}.${schemaA}`,
+      inversedBy: fieldA,
+    });
+  }
+
+  // NEW: Add unidirectional relationships
+  addUnidirectionalOneToManyRelationship(fromSchema, fieldName, toSchema) {
+    this.storeProcessedRelationship(fromSchema, fieldName, toSchema, {
+      type: "relation",
+      relation: "oneToMany",
+      target: `api::${toSchema}.${toSchema}`,
+    });
+  }
+
+  addUnidirectionalOneToOneRelationship(fromSchema, fieldName, toSchema) {
+    this.storeProcessedRelationship(fromSchema, fieldName, toSchema, {
+      type: "relation",
+      relation: "oneToOne",
+      target: `api::${toSchema}.${toSchema}`,
+    });
+  }
+
+  // NEW: Store processed relationship
+  storeProcessedRelationship(
+    fromSchema,
+    fieldName,
+    toSchema,
+    relationshipConfig
+  ) {
+    if (!this.relationships.has(fromSchema)) {
+      this.relationships.set(fromSchema, new Map());
+    }
+
+    this.relationships.get(fromSchema).set(fieldName, relationshipConfig);
   }
 
   extractSchemaFromContent(content) {
@@ -691,6 +949,14 @@ class DynamicSchemaGenerator {
       `\n🔧 Converting field: ${field.name} (type: ${field.type}) in ${parentSchemaName}`
     );
 
+    // Check if this field has a processed relationship
+    const processedRelationships = this.relationships.get(parentSchemaName);
+    if (processedRelationships && processedRelationships.has(field.name)) {
+      const relationshipConfig = processedRelationships.get(field.name);
+      console.log(`✅ Using processed relationship:`, relationshipConfig);
+      return relationshipConfig;
+    }
+
     const fieldType = field.type;
 
     // Handle special cases first
@@ -703,22 +969,7 @@ class DynamicSchemaGenerator {
       };
     }
 
-    if (fieldType === "reference") {
-      console.log(`🔗 Handling reference field`);
-      const targetType = field.to?.[0]?.type;
-
-      if (targetType) {
-        // Store relationship for later processing
-        this.storeRelationship(parentSchemaName, field.name, targetType, false);
-
-        return {
-          type: "relation",
-          relation: "oneToMany",
-          target: `api::${targetType}.${targetType}`,
-        };
-      }
-    }
-
+    // Handle other field types...
     if (fieldType === "array") {
       console.log(`📚 Delegating to handleArrayField`);
       return this.handleArrayField(field, parentSchemaName);
@@ -762,79 +1013,46 @@ class DynamicSchemaGenerator {
     return strapiField;
   }
 
+  // UPDATED: Modified handleArrayField to not create relationships directly
   handleArrayField(field, parentSchemaName) {
     console.log(
       `🔍 Processing array field: ${field.name} in ${parentSchemaName}`
     );
-    console.log(`📋 Field object:`, JSON.stringify(field, null, 2));
+
+    // Check if this field has a processed relationship first
+    const processedRelationships = this.relationships.get(parentSchemaName);
+    if (processedRelationships && processedRelationships.has(field.name)) {
+      const relationshipConfig = processedRelationships.get(field.name);
+      console.log(
+        `✅ Using processed relationship for array:`,
+        relationshipConfig
+      );
+      return relationshipConfig;
+    }
 
     const arrayItems = field.of;
-    console.log(`📝 Array items:`, JSON.stringify(arrayItems, null, 2));
 
     if (!arrayItems || arrayItems.length === 0) {
       console.log(`❌ No array items found, returning json type`);
       return { type: "json" };
     }
 
-    // Handle array of references - COMPLETELY FIXED
+    // Handle array of references - but don't create relationships here
+    // (they should have been processed in the relationship analysis phase)
     const referenceItems = arrayItems.filter(
       (item) => item.type === "reference"
     );
-    console.log(`🔗 Found ${referenceItems.length} reference items`);
-
     if (referenceItems.length > 0) {
-      if (referenceItems.length === 1) {
-        console.log(`✅ Single reference type found`);
-        const referenceItem = referenceItems[0];
-
-        // FIXED: Check if the reference has valid target types
-        const targetType = referenceItem.to?.[0]?.type;
-        console.log(`🎯 Target type:`, targetType);
-
-        if (targetType) {
-          console.log(
-            `📞 Storing relationship: ${parentSchemaName}.${field.name} -> ${targetType}`
-          );
-
-          // Store relationship for later processing
-          this.storeRelationship(
-            parentSchemaName,
-            field.name,
-            targetType,
-            true // This is an array relationship
-          );
-
-          const relationResult = {
-            type: "relation",
-            relation: "oneToMany",
-            target: `api::${targetType}.${targetType}`,
-          };
-          console.log(
-            `🎉 Returning relation:`,
-            JSON.stringify(relationResult, null, 2)
-          );
-
-          return relationResult;
-        } else {
-          console.warn(
-            `⚠️ Reference found but no valid target type, falling back to json`
-          );
-          return { type: "json" };
-        }
-      } else {
-        // Multiple reference types - use json for now
-        console.warn(
-          `⚠️ Field ${field.name} has multiple reference types, using json`
-        );
-        return { type: "json" };
-      }
+      console.warn(
+        `⚠️ Found unprocessed reference in array field ${field.name}, using json fallback`
+      );
+      return { type: "json" };
     }
 
-    // Handle array of images - FIXED
+    // Handle array of images
     const imageItems = arrayItems.filter(
       (item) => item.type === "image" || item.type === "file"
     );
-    console.log(`🖼️ Found ${imageItems.length} image/file items`);
 
     if (imageItems.length > 0) {
       console.log(`✅ Returning media array for images/files`);
@@ -845,7 +1063,7 @@ class DynamicSchemaGenerator {
       };
     }
 
-    // Handle other array types
+    // Handle other array types...
     const firstItem = arrayItems[0];
 
     if (firstItem.type === "string") {
@@ -969,21 +1187,36 @@ class DynamicSchemaGenerator {
     return { type: strapiType };
   }
 
-  storeRelationship(fromType, fieldName, toType, isArray) {
-    if (!this.relationships.has(fromType)) {
-      this.relationships.set(fromType, []);
-    }
+  // // UPDATED: Store relationship with relation type parameter
+  // storeRelationship(fromType, fieldName, toType, isArray, relationType = null) {
+  //   if (!this.relationships.has(fromType)) {
+  //     this.relationships.set(fromType, []);
+  //   }
 
-    this.relationships.get(fromType).push({
-      fieldName,
-      targetType: toType,
-      isArray,
-      relation: "oneToMany",
-    });
-  }
+  //   // Determine relation type based on context if not explicitly provided
+  //   let relation = relationType;
+  //   if (!relation) {
+  //     if (isArray) {
+  //       relation = "manyToMany";
+  //     } else {
+  //       relation = "oneToOne";
+  //     }
+  //   }
+
+  //   this.relationships.get(fromType).push({
+  //     fieldName,
+  //     targetType: toType,
+  //     isArray,
+  //     relation,
+  //   });
+  // }
 
   async generateStrapiSchemas() {
     console.log("Generating Strapi schemas...");
+
+    // NEW: Collect and analyze relationships before generating schemas
+    await this.collectAllReferences();
+    this.analyzeBidirectionalRelationships();
 
     const strapiProjectPath = "../strapi-project";
 
@@ -1012,7 +1245,7 @@ class DynamicSchemaGenerator {
       console.log(`Generated schema for: ${typeName} (${strapiSchema.kind})`);
     }
 
-    // Generate components with improved structure
+    // Generate components
     for (const [componentKey, component] of this.components) {
       const [categoryName, componentFileName] = componentKey.split(".");
 
