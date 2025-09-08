@@ -1,6 +1,6 @@
 {
   "migration": {
-    "timestamp": "2025-09-08T16:17:30.914Z",
+    "timestamp": "2025-09-08T16:54:38.541Z",
     "config": {
       "strapiUrl": "http://localhost:1337",
       "assetProvider": "strapi",
@@ -14,12 +14,12 @@
       },
       "entities": {
         "total": 7,
-        "completed": 2,
-        "failed": 5
+        "completed": 3,
+        "failed": 4
       },
       "relationships": {
-        "total": 2,
-        "completed": 2,
+        "total": 3,
+        "completed": 3,
         "failed": 0
       }
     },
@@ -27,75 +27,41 @@
       "totalAssets": 6,
       "migratedAssets": 6,
       "totalEntities": 7,
-      "migratedEntities": 2,
-      "totalRelationships": 2,
-      "processedRelationships": 2
+      "migratedEntities": 3,
+      "totalRelationships": 3,
+      "processedRelationships": 3
     },
     "errors": [
       {
         "type": "entity",
-        "contentType": "post",
-        "id": "21b05f38-e681-492f-bd75-6429570db7cd",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key categories\",\"details\":{\"key\":\"categories\",\"source\":\"body\"}}}"
-      },
-      {
-        "type": "entity",
-        "contentType": "page",
-        "id": "71c10cae-aa85-41b2-bbdf-e677eb4062e4",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
-      },
-      {
-        "type": "entity",
-        "contentType": "page",
-        "id": "74db4073-2dcd-4c29-b48f-6a0ece6f04a9",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+        "contentType": "person",
+        "id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}",
+        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
       },
       {
         "type": "entity",
         "contentType": "product",
         "id": "f9d2eb3d-d46d-49ec-a796-c782b9eb551e",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}",
+        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"accessory\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
       },
       {
         "type": "entity",
         "contentType": "product",
         "id": "3a1e6d7a-8a36-468f-9cbb-3eb881ebd2aa",
-        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"3 errors occurred\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"training\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"1\"],\"message\":\"tags[1] must be a `object` type, but the final value was: `null` (cast from the value `\\\"staff\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"2\"],\"message\":\"tags[2] must be a `object` type, but the final value was: `null` (cast from the value `\\\"equipment\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}",
+        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"3 errors occurred\",\"details\":{\"errors\":[{\"path\":[\"tags\",\"0\"],\"message\":\"tags[0] must be a `object` type, but the final value was: `null` (cast from the value `\\\"training\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"1\"],\"message\":\"tags[1] must be a `object` type, but the final value was: `null` (cast from the value `\\\"staff\\\"`).\",\"name\":\"ValidationError\",\"value\":null},{\"path\":[\"tags\",\"2\"],\"message\":\"tags[2] must be a `object` type, but the final value was: `null` (cast from the value `\\\"equipment\\\"`).\",\"name\":\"ValidationError\",\"value\":null}]}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 1)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
+      },
+      {
+        "type": "entity",
+        "contentType": "post",
+        "id": "21b05f38-e681-492f-bd75-6429570db7cd",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}",
+        "stack": "Error: API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key _system\",\"details\":{\"key\":\"_system\",\"source\":\"body\"}}}\n    at ContentMigrator.createStrapiEntity (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:646:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async ContentMigrator.migrateDocument (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:304:24)\n    at async Promise.allSettled (index 0)\n    at async ContentMigrator.migrateBatch (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:293:5)\n    at async ContentMigrator.migrateContent (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:249:11)\n    at async ContentMigrator.migrate (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:71:7)\n    at async runMigration (/Users/miracleio/Documents/writing/strapi/migrating-from-sanity-to-strapi/sanity-to-strapi-migration/migration-scripts/content-migrator.js:868:5)"
       }
     ],
     "entityMappings": {
-      "c7e068be-12f0-4217-ab1e-1d03116d9fb9": {
-        "contentType": "person",
-        "originalData": {
-          "_createdAt": "2025-08-28T08:51:23Z",
-          "_id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
-          "_rev": "S5wqqKshdagnobTnuCli4M",
-          "_type": "person",
-          "_updatedAt": "2025-08-28T08:55:30Z",
-          "bio": [
-            {
-              "_key": "1aac604264fc",
-              "_type": "block",
-              "children": [
-                {
-                  "_key": "36c3e90f166f",
-                  "_type": "span",
-                  "marks": [],
-                  "text": "Tai Lung—master of kung fu, trained by Shifu, and destined for greatness. I am the true Dragon Warrior, unmatched in strength and ambition."
-                }
-              ],
-              "markDefs": [],
-              "style": "normal"
-            }
-          ],
-          "email": "tailung@jadepalace.com",
-          "name": "Tai Lung",
-          "profilePicture": {
-            "_sanityAsset": "image@file://./images/87d44663b620c92e956dbfbd3080a6398589c289-1080x1080.png",
-            "_type": "image"
-          }
-        }
-      },
       "38227ea3-47c0-4b32-8ff0-88ed9c18a6f2": {
         "contentType": "category",
         "originalData": {
@@ -110,37 +76,611 @@
           },
           "title": "Martial Arts"
         }
+      },
+      "71c10cae-aa85-41b2-bbdf-e677eb4062e4": {
+        "contentType": "page",
+        "originalData": {
+          "_createdAt": "2025-08-28T09:46:16Z",
+          "_id": "71c10cae-aa85-41b2-bbdf-e677eb4062e4",
+          "_rev": "S5wqqKshdagnobTnuCum8j",
+          "_type": "page",
+          "_updatedAt": "2025-08-28T09:51:57Z",
+          "body": [
+            {
+              "_key": "57513d6c1d25",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "6d4fbf23ae72",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "About the Jade Palace"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "e7df3d5aced1",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "b98bb37a6172",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Welcome to the official website of the Jade Palace, the revered heart of kung fu in the Valley of Peace. For generations, the Jade Palace has stood as a beacon of strength, wisdom, and harmony, training the greatest warriors in all of China. Founded by Grand Master Oogway, our halls have witnessed the rise of legends—heroes and masters whose stories inspire all who seek the path of kung fu."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "2710cfde8681",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "dc34e289ba2c",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Here, under the guidance of Master Shifu, students learn not only the art of combat but also the virtues of discipline, humility, and inner peace. Our mission is to preserve the ancient traditions of kung fu while nurturing the next generation of protectors and leaders."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "632ebc03ff2c",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "895302d6d047",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Within these walls, the Furious Five—Tigress, Monkey, Mantis, Viper, and Crane—alongside many dedicated students, strive for excellence in both body and spirit. The Jade Palace is more than a school; it is a sanctuary for those devoted to mastering themselves and serving the greater good."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "4c863bbe8e86",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "619ee7eb9411",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Explore our history, meet our masters, and discover the stories that shape the legacy of the Jade Palace. Whether you are a student, a visitor, or a seeker of wisdom, you are welcome here."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            }
+          ],
+          "seo": {
+            "description": "For generations, the Jade Palace has stood as a beacon of strength, wisdom, and harmony, training the greatest warriors in all of China.",
+            "image": {
+              "_sanityAsset": "image@file://./images/92dba2ee4b3e70d1a6f8e1b5698c2f1c5d23fc19-1200x509.png",
+              "_type": "image"
+            },
+            "title": "About the Jade Palace"
+          },
+          "slug": {
+            "_type": "slug",
+            "current": "about"
+          },
+          "title": "About"
+        }
+      },
+      "74db4073-2dcd-4c29-b48f-6a0ece6f04a9": {
+        "contentType": "page",
+        "originalData": {
+          "_createdAt": "2025-08-28T10:39:29Z",
+          "_id": "74db4073-2dcd-4c29-b48f-6a0ece6f04a9",
+          "_rev": "S5wqqKshdagnobTnuD8yJm",
+          "_type": "page",
+          "_updatedAt": "2025-08-28T10:42:47Z",
+          "body": [
+            {
+              "_key": "a10278b6d5eb",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "96673c9183b0",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Welcome to the Jade Palace—home of the legendary Furious Five and Master Shifu! Whether you seek wisdom, wish to train, or want to visit, we’re here to help."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "b4ad62ebdc66",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "a4b10469aed1",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "55dad2f98529",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "2f9c63e40048",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Address"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "dc8bdca115e0",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "748faa1127a0",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Jade Palace\nHigh atop the Valley of Peace\nChina"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "4e2863b62286",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "fd2b7dda6346",
+                  "_type": "span",
+                  "marks": [],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "21f97409a98f",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "e28ffe8e62fa",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Visiting Hours"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "e155cada2046",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "c50aeaeb4a6a",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Monday–Friday: 9:00 AM – 5:00 PM"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "09dc919c5524",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "311467d50c1d",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Saturday: 10:00 AM – 4:00 PM"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "ff3dc1924cd6",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "ef106ef11c99",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Sunday: Closed for meditation and training"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "12ca9f6b6907",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "fbd41c64961f",
+                  "_type": "span",
+                  "marks": [],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "90edf6162476",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "9ab8eb139dd4",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Contact Masters"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "0c5802c2e2eb",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "09c2258e3b7c",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Master Shifu: shifu@jadepalace.com"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "5097096c1967",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "082768116284",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Master Po (Dragon Warrior): po@jadepalace.com"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "08b956b12211",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "edf7f2025cd3",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "bffaec0a1a18",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "3f364fe1934f",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Phone"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "fb1a8dd9cef2",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "c7a31ea0b79f",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "+86-888-DRAGON"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "7008ed073df9",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "3725b91ee65d",
+                  "_type": "span",
+                  "marks": [],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "947b1e606c01",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "8daf4544e7fb",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Training Inquiries"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "19b35f20975a",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "54ef3be97c62",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Interested in kung fu lessons or a tour?\nFill out our Training Request Form."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "a65033750c19",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "dd7c8faaf571",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "\n"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "1ce376a36127",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "2bf156bb9a18",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Media & Press"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "19eadd35fbe5",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "bd57e1684109",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "For interviews or press visits, contact:\npress@jadepalace.com"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "830d55317712",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "6bb12663dc70",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "\n"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "662191147aa3",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "f4024f0b50b3",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Directions"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "a6642b056474",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "eb7001139008",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "The Jade Palace is located at the peak above the Valley of Peace.\nFollow the Sacred Steps from the village square."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "37b93eed3b40",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "05c80f4c0cf2",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "\n"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "f0355b225901",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "90224b1f67d8",
+                  "_type": "span",
+                  "marks": [
+                    "strong"
+                  ],
+                  "text": "Social Media"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "f176bec0a58a",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "bdc08bf2fa04",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Weibo: @JadePalace"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "a2beb092afc1",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "cf48fbe72c73",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Scrollbook: JadePalaceOfficial"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "b501654823fc",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "bbad30ee0823",
+                  "_type": "span",
+                  "marks": [],
+                  "text": ""
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            }
+          ],
+          "seo": {
+            "description": "Get in touch with the Jade Palace, home of Master Shifu, Po, and the Furious Five. Learn about visiting hours, training inquiries, and how to reach us in the Valley of Peace.",
+            "image": {
+              "_sanityAsset": "image@file://./images/bf352ea0b802bb389916f5c7f04850de3e78f24c-1200x500.png",
+              "_type": "image"
+            },
+            "title": "Jade Palace Contact | Kung Fu Panda Valley of Peace"
+          },
+          "slug": {
+            "_type": "slug",
+            "current": "contact"
+          },
+          "title": "Contact"
+        }
       }
     },
     "assetMappings": {
       "bf352ea0b802bb389916f5c7f04850de3e78f24c": {
-        "id": 17,
-        "url": "/uploads/image_ec5bf9b5ed.png",
+        "id": 46,
+        "url": "/uploads/image_ac26b0f225.png",
         "provider": "strapi"
       },
       "92dba2ee4b3e70d1a6f8e1b5698c2f1c5d23fc19": {
-        "id": 18,
-        "url": "/uploads/image_f7ecc369b3.png",
+        "id": 47,
+        "url": "/uploads/image_43aa8fb18f.png",
         "provider": "strapi"
       },
       "87d44663b620c92e956dbfbd3080a6398589c289": {
-        "id": 19,
-        "url": "/uploads/image_a18e85884e.png",
+        "id": 48,
+        "url": "/uploads/image_83f42a666f.png",
         "provider": "strapi"
       },
       "da8b7749fe606773970cdb711c0a3d5dd7bd7a5a": {
-        "id": 20,
-        "url": "/uploads/image_65350154d9.png",
+        "id": 49,
+        "url": "/uploads/image_48d7dc1ae7.png",
         "provider": "strapi"
       },
       "a4d5960925c734f30a23acb0a5f246a92a0347d1": {
-        "id": 21,
-        "url": "/uploads/image_330c5abd21.png",
+        "id": 50,
+        "url": "/uploads/image_cc20799461.png",
         "provider": "strapi"
       },
       "8bb4a2d05b037e0fe9570d1e504c8dc4cd026d2e": {
-        "id": 22,
-        "url": "/uploads/image_081f01dce0.png",
+        "id": 51,
+        "url": "/uploads/image_1fa0d016e4.png",
         "provider": "strapi"
       }
     }

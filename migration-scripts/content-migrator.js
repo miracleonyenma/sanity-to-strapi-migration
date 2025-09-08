@@ -67,7 +67,7 @@ class ContentMigrator {
       // Step 2: Migrate assets first
       await this.migrateAssets(assets, sanityExportPath);
 
-      // Step 3: Migrate content in dependency order
+      // Step 3: Migrate content in dependency order (categories first, then posts, etc.)
       await this.migrateContent(documents);
 
       // Step 4: Process pending relationships
@@ -221,7 +221,7 @@ class ContentMigrator {
     };
   }
 
-  // Content migration
+  // Content migration with proper dependency order
   async migrateContent(documents) {
     console.log(`📄 Migrating ${documents.length} documents...`);
     this.migrationState.progress.entities.total = documents.length;
@@ -229,17 +229,45 @@ class ContentMigrator {
     // Group documents by type for dependency management
     const documentsByType = this.groupDocumentsByType(documents);
 
-    // Migrate in batches to avoid overwhelming the API
+    // Define migration order - dependencies first
+    const migrationOrder = [
+      "category", // Categories first (no dependencies)
+      "person", // People next (no dependencies)
+      "product", // Products (may depend on categories)
+      "page", // Pages (may depend on various things)
+      "post", // Posts last (depend on categories, people)
+    ];
+
+    // Migrate in dependency order
+    for (const contentType of migrationOrder) {
+      const docs = documentsByType[contentType] || [];
+      if (docs.length > 0) {
+        console.log(`📝 Migrating ${docs.length} ${contentType} documents...`);
+
+        for (let i = 0; i < docs.length; i += this.config.batchSize) {
+          const batch = docs.slice(i, i + this.config.batchSize);
+          await this.migrateBatch(batch, contentType);
+
+          // Small delay between batches
+          if (i + this.config.batchSize < docs.length) {
+            await this.delay(500);
+          }
+        }
+      }
+    }
+
+    // Handle any remaining types not in the order
     for (const [contentType, docs] of Object.entries(documentsByType)) {
-      console.log(`📝 Migrating ${docs.length} ${contentType} documents...`);
+      if (!migrationOrder.includes(contentType)) {
+        console.log(`📝 Migrating ${docs.length} ${contentType} documents...`);
 
-      for (let i = 0; i < docs.length; i += this.config.batchSize) {
-        const batch = docs.slice(i, i + this.config.batchSize);
-        await this.migrateBatch(batch, contentType);
+        for (let i = 0; i < docs.length; i += this.config.batchSize) {
+          const batch = docs.slice(i, i + this.config.batchSize);
+          await this.migrateBatch(batch, contentType);
 
-        // Small delay between batches
-        if (i + this.config.batchSize < docs.length) {
-          await this.delay(500);
+          if (i + this.config.batchSize < docs.length) {
+            await this.delay(500);
+          }
         }
       }
     }
@@ -294,6 +322,7 @@ class ContentMigrator {
         contentType,
         id: document._id,
         error: error.message,
+        stack: error.stack,
       });
       console.error(
         `❌ Failed to migrate ${contentType} ${document._id}:`,
@@ -305,29 +334,32 @@ class ContentMigrator {
   async transformDocument(document, contentType) {
     const transformed = {};
 
-    // Skip Sanity system fields AND Strapi managed fields
+    // Skip Sanity system fields
     const skipFields = ["_id", "_type", "_rev", "_createdAt", "_updatedAt"];
 
     for (const [key, value] of Object.entries(document)) {
       if (skipFields.includes(key)) continue;
 
       try {
-        transformed[key] = await this.transformField(
+        const transformedValue = await this.transformField(
           key,
           value,
           document,
           contentType
         );
+
+        // Only include non-null values
+        if (transformedValue !== null && transformedValue !== undefined) {
+          transformed[key] = transformedValue;
+        }
       } catch (error) {
         console.warn(`⚠️ Failed to transform field ${key}:`, error.message);
-        // Store as JSON fallback
-        transformed[key] = value;
+        // Skip problematic fields rather than storing as fallback
+        continue;
       }
     }
 
-    // DO NOT set createdAt/updatedAt - Strapi manages these automatically
-
-    // Handle published state - only set if not already present
+    // Handle published state
     if (!transformed.publishedAt && document.publishedAt) {
       transformed.publishedAt = document.publishedAt;
     } else if (!transformed.publishedAt) {
@@ -368,19 +400,22 @@ class ContentMigrator {
   }
 
   async transformArray(fieldName, arrayValue, document, contentType) {
+    // Handle empty arrays
+    if (arrayValue.length === 0) {
+      return [];
+    }
+
+    // Check if this is Portable Text (blocks)
+    if (arrayValue.some((item) => item._type === "block")) {
+      return this.convertPortableTextToBlocks(arrayValue);
+    }
+
     const transformed = [];
 
     for (const item of arrayValue) {
       if (typeof item === "object" && item !== null) {
-        // Handle Portable Text blocks
-        if (item._type === "block") {
-          // Convert entire array as Portable Text
-          return this.convertPortableTextToBlocks(arrayValue);
-        }
-
-        // Handle references
+        // Handle references - store for later relationship processing
         if (item._type === "reference" && item._ref) {
-          // Store for later relationship processing
           this.migrationState.pendingRelationships.push({
             sourceType: contentType,
             sourceId: document._id,
@@ -388,7 +423,7 @@ class ContentMigrator {
             targetId: item._ref,
             isArray: true,
           });
-          continue; // Skip adding to transformed array now
+          continue; // Don't add to transformed array now
         }
 
         // Handle images
@@ -403,32 +438,19 @@ class ContentMigrator {
           continue;
         }
 
-        // Handle other object types (components for tags, specifications)
-        if (fieldName === "tags") {
-          // Transform string array items to component format
-          if (typeof item === "string") {
-            transformed.push({
-              __component: "tag.tagses",
-              value: item,
-            });
-          }
-          continue;
-        }
-
-        // Handle other object types
-        transformed.push(
-          await this.transformObject(fieldName, item, document, contentType)
+        // Handle other objects
+        const transformedItem = await this.transformObject(
+          fieldName,
+          item,
+          document,
+          contentType
         );
-      } else {
-        // Handle primitive arrays (like tags as strings)
-        if (fieldName === "tags") {
-          transformed.push({
-            __component: "tag.tagses",
-            value: item,
-          });
-        } else {
-          transformed.push(item);
+        if (transformedItem !== null) {
+          transformed.push(transformedItem);
         }
+      } else {
+        // Handle primitive values
+        transformed.push(item);
       }
     }
 
@@ -451,7 +473,7 @@ class ContentMigrator {
       return null;
     }
 
-    // Handle references
+    // Handle references - store for later relationship processing
     if (objectValue._type === "reference" && objectValue._ref) {
       this.migrationState.pendingRelationships.push({
         sourceType: contentType,
@@ -463,11 +485,9 @@ class ContentMigrator {
       return null; // Will be populated later
     }
 
-    // Handle SEO objects (components)
+    // Handle SEO objects - based on your manual example, SEO should be flat
     if (fieldName === "seo") {
-      const seoComponent = {
-        __component: "seo.seos",
-      };
+      const seoData = {};
 
       for (const [key, value] of Object.entries(objectValue)) {
         if (!key.startsWith("_")) {
@@ -475,41 +495,34 @@ class ContentMigrator {
             const assetId = this.extractAssetIdFromImage(value);
             if (assetId) {
               const migratedAsset = this.migrationState.assets.get(assetId);
-              seoComponent[key] = migratedAsset ? migratedAsset.id : null;
+              seoData[key] = migratedAsset ? migratedAsset.id : null;
             }
           } else {
-            seoComponent[key] = value;
+            seoData[key] = value;
           }
         }
       }
 
-      return seoComponent;
+      return seoData;
     }
 
-    // Handle specifications objects
-    if (fieldName === "specifications") {
-      return {
-        __component: "specification.specificationses",
-        ...Object.fromEntries(
-          Object.entries(objectValue).filter(([key]) => !key.startsWith("_"))
-        ),
-      };
-    }
-
-    // Handle other objects (generic component transformation)
+    // For other objects, transform to flat structure (avoid __component)
     const transformed = {};
     for (const [key, value] of Object.entries(objectValue)) {
       if (!key.startsWith("_")) {
-        transformed[key] = await this.transformField(
+        const transformedValue = await this.transformField(
           key,
           value,
           document,
           contentType
         );
+        if (transformedValue !== null && transformedValue !== undefined) {
+          transformed[key] = transformedValue;
+        }
       }
     }
 
-    return transformed;
+    return Object.keys(transformed).length > 0 ? transformed : null;
   }
 
   // Extract asset ID from Sanity image object
@@ -568,8 +581,6 @@ class ContentMigrator {
     if (style === "normal" || !style) {
       const strapiChildren = this.convertSpansToStrapiText(children, markDefs);
 
-      // Check if this is actually a list based on markDefs or other indicators
-      // For now, treat as paragraph
       return {
         type: "paragraph",
         children: strapiChildren,
@@ -629,8 +640,9 @@ class ContentMigrator {
       if (error.response) {
         console.error(
           `Strapi API Error (${error.response.status}):`,
-          error.response.data
+          JSON.stringify(error.response.data, null, 2)
         );
+        console.error("Request payload:", JSON.stringify({ data }, null, 2));
         throw new Error(
           `API Error: ${error.response.status} - ${JSON.stringify(
             error.response.data
@@ -684,30 +696,49 @@ class ContentMigrator {
       return;
     }
 
-    // Get current entity data
-    const endpoint = `/api/${this.pluralize(sourceType)}/${
-      sourceEntity.documentId
-    }`;
-    const currentData = await this.strapiApi.get(endpoint);
+    // Use documentId if available, otherwise fall back to strapiId
+    const sourceDocumentId = sourceEntity.documentId || sourceEntity.strapiId;
+    const targetDocumentId = targetEntity.documentId || targetEntity.strapiId;
 
-    // Update with relationship
-    const updateData = { ...currentData.data.data };
+    try {
+      // Get current entity data
+      const endpoint = `/api/${this.pluralize(sourceType)}/${sourceDocumentId}`;
+      const currentResponse = await this.strapiApi.get(endpoint);
+      const currentData = currentResponse.data.data;
 
-    if (isArray) {
-      if (!updateData[fieldName]) {
-        updateData[fieldName] = [];
+      // Update with relationship
+      const updateData = { ...currentData };
+
+      if (isArray) {
+        if (!Array.isArray(updateData[fieldName])) {
+          updateData[fieldName] = [];
+        }
+
+        // Avoid duplicates
+        if (!updateData[fieldName].includes(targetDocumentId)) {
+          updateData[fieldName].push(targetDocumentId);
+        }
+      } else {
+        updateData[fieldName] = targetDocumentId;
       }
-      updateData[fieldName].push(targetEntity.documentId);
-    } else {
-      updateData[fieldName] = targetEntity.documentId;
+
+      // Remove system fields that shouldn't be updated
+      delete updateData.id;
+      delete updateData.documentId;
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
+      delete updateData.publishedAt;
+
+      // Send update
+      await this.strapiApi.put(endpoint, { data: updateData });
+
+      console.log(
+        `✅ Updated relationship: ${sourceType}.${fieldName} -> ${targetEntity.contentType}`
+      );
+    } catch (error) {
+      console.error(`Failed to process relationship: ${error.message}`);
+      throw error;
     }
-
-    // Send update
-    await this.strapiApi.put(endpoint, { data: updateData });
-
-    console.log(
-      `✅ Updated relationship: ${sourceType}.${fieldName} -> ${targetEntity.contentType}`
-    );
   }
 
   // Utility methods
@@ -807,10 +838,7 @@ class ContentMigrator {
 // CLI runner
 async function runMigration() {
   const config = {
-    strapiUrl:
-      process.env.STRAPI_URL ||
-      "http://localhost:1337" ||
-      "https://87e80461be75.ngrok-free.app",
+    strapiUrl: process.env.STRAPI_URL || "http://localhost:1337",
     apiToken:
       process.env.STRAPI_API_TOKEN ||
       "9bf38bf1e938c3e820fb04b9d81262b8b97f052e9959692c10455c805e410aeb697ae2096f94da052a802c45ba039bfea0aacb042b81ebacf3f5cd8cc1bb9c1c0efada0a23253b4e1883131793e5a000d0581adcf9ce2e3408e3ef686eb2731fd8d6471e7ca7c571bb9d33968192274de35828e9f3dabffd04aef04c93b24ed6",
