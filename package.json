@@ -12,7 +12,9 @@
   "dependencies": {
     "@sanity/client": "^7.10.0",
     "axios": "^1.11.0",
+    "cloudinary": "^2.7.0",
     "csvtojson": "^2.0.10",
+    "form-data": "^4.0.4",
     "fs-extra": "^11.3.1",
     "path": "^0.12.7"
   }

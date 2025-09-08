@@ -1,0 +1,148 @@
+{
+  "migration": {
+    "timestamp": "2025-09-08T16:17:30.914Z",
+    "config": {
+      "strapiUrl": "http://localhost:1337",
+      "assetProvider": "strapi",
+      "batchSize": 10
+    },
+    "progress": {
+      "assets": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0
+      },
+      "entities": {
+        "total": 7,
+        "completed": 2,
+        "failed": 5
+      },
+      "relationships": {
+        "total": 2,
+        "completed": 2,
+        "failed": 0
+      }
+    },
+    "summary": {
+      "totalAssets": 6,
+      "migratedAssets": 6,
+      "totalEntities": 7,
+      "migratedEntities": 2,
+      "totalRelationships": 2,
+      "processedRelationships": 2
+    },
+    "errors": [
+      {
+        "type": "entity",
+        "contentType": "post",
+        "id": "21b05f38-e681-492f-bd75-6429570db7cd",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key categories\",\"details\":{\"key\":\"categories\",\"source\":\"body\"}}}"
+      },
+      {
+        "type": "entity",
+        "contentType": "page",
+        "id": "71c10cae-aa85-41b2-bbdf-e677eb4062e4",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+      },
+      {
+        "type": "entity",
+        "contentType": "page",
+        "id": "74db4073-2dcd-4c29-b48f-6a0ece6f04a9",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+      },
+      {
+        "type": "entity",
+        "contentType": "product",
+        "id": "f9d2eb3d-d46d-49ec-a796-c782b9eb551e",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+      },
+      {
+        "type": "entity",
+        "contentType": "product",
+        "id": "3a1e6d7a-8a36-468f-9cbb-3eb881ebd2aa",
+        "error": "API Error: 400 - {\"data\":null,\"error\":{\"status\":400,\"name\":\"ValidationError\",\"message\":\"Invalid key __component\",\"details\":{\"key\":\"__component\",\"source\":\"body\"}}}"
+      }
+    ],
+    "entityMappings": {
+      "c7e068be-12f0-4217-ab1e-1d03116d9fb9": {
+        "contentType": "person",
+        "originalData": {
+          "_createdAt": "2025-08-28T08:51:23Z",
+          "_id": "c7e068be-12f0-4217-ab1e-1d03116d9fb9",
+          "_rev": "S5wqqKshdagnobTnuCli4M",
+          "_type": "person",
+          "_updatedAt": "2025-08-28T08:55:30Z",
+          "bio": [
+            {
+              "_key": "1aac604264fc",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "36c3e90f166f",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Tai Lung—master of kung fu, trained by Shifu, and destined for greatness. I am the true Dragon Warrior, unmatched in strength and ambition."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            }
+          ],
+          "email": "tailung@jadepalace.com",
+          "name": "Tai Lung",
+          "profilePicture": {
+            "_sanityAsset": "image@file://./images/87d44663b620c92e956dbfbd3080a6398589c289-1080x1080.png",
+            "_type": "image"
+          }
+        }
+      },
+      "38227ea3-47c0-4b32-8ff0-88ed9c18a6f2": {
+        "contentType": "category",
+        "originalData": {
+          "_createdAt": "2025-08-28T08:57:42Z",
+          "_id": "38227ea3-47c0-4b32-8ff0-88ed9c18a6f2",
+          "_rev": "DVFBs4OHEV7W9NpU9j5VxA",
+          "_type": "category",
+          "_updatedAt": "2025-08-28T08:57:48Z",
+          "slug": {
+            "_type": "slug",
+            "current": "martial-arts"
+          },
+          "title": "Martial Arts"
+        }
+      }
+    },
+    "assetMappings": {
+      "bf352ea0b802bb389916f5c7f04850de3e78f24c": {
+        "id": 17,
+        "url": "/uploads/image_ec5bf9b5ed.png",
+        "provider": "strapi"
+      },
+      "92dba2ee4b3e70d1a6f8e1b5698c2f1c5d23fc19": {
+        "id": 18,
+        "url": "/uploads/image_f7ecc369b3.png",
+        "provider": "strapi"
+      },
+      "87d44663b620c92e956dbfbd3080a6398589c289": {
+        "id": 19,
+        "url": "/uploads/image_a18e85884e.png",
+        "provider": "strapi"
+      },
+      "da8b7749fe606773970cdb711c0a3d5dd7bd7a5a": {
+        "id": 20,
+        "url": "/uploads/image_65350154d9.png",
+        "provider": "strapi"
+      },
+      "a4d5960925c734f30a23acb0a5f246a92a0347d1": {
+        "id": 21,
+        "url": "/uploads/image_330c5abd21.png",
+        "provider": "strapi"
+      },
+      "8bb4a2d05b037e0fe9570d1e504c8dc4cd026d2e": {
+        "id": 22,
+        "url": "/uploads/image_081f01dce0.png",
+        "provider": "strapi"
+      }
+    }
+  }
+}
